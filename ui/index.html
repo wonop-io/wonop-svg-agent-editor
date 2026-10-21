@@ -102,6 +102,7 @@
 <dialog id="style-dialog"><form id="style-form"><h2>Object style</h2><label for="fill">Fill</label><input id="fill" value="none" placeholder="none or #ffffff"><label for="stroke">Stroke</label><input id="stroke" value="#475569"><label for="stroke-width">Stroke width</label><input id="stroke-width" type="number" min="0" max="1000" step="0.5" value="2"><div id="font-size-field" hidden><label for="font-size">Text size</label><input id="font-size" type="number" min="1" max="1000" value="24"></div><div class="actions"><button type="button" id="style-cancel">Cancel</button><button class="primary">Apply</button></div></form></dialog>
 <dialog id="objects-dialog"><h2>Diagram objects</h2><p>Select an object, then use the arrow keys or drag it on the canvas.</p><div id="object-list"></div><div class="actions"><button id="objects-close">Done</button></div></dialog>
 <script src="preview.js"></script>
+<script src="vendor/svgjs-3.2.8.min.js"></script>
 <script src="canvas.js"></script>
 <script src="source-sync.js"></script>
 <script src="editor.js"></script>

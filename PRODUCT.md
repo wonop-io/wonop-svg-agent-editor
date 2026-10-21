@@ -12,7 +12,7 @@ Wonop users and agents iterating on local architecture diagrams.
 Visually draw, select and manipulate SVG architecture diagrams without leaving Wonop, while structured agent operations share the same document. Success is a persisted source change with live visual feedback and no silent loss of unsaved edits (WON-887).
 
 ## Stack
-Existing Wonop classic-script package with plain HTML/CSS/JavaScript. The user delegated the lightweight implementation choice and explicitly requested implementation without another planning approval.
+Existing Wonop classic-script package with plain HTML/CSS/JavaScript and vendored SVG.js 3.2.8 for SVG-native geometry. The user delegated the lightweight implementation choice and explicitly requested implementation without another planning approval.
 
 ## Capabilities and Constraints
 Canvas-first drawing with a minimal Select/Box/Ellipse/Line/Text/Hand tool palette; direct selection, movement, primitive resizing, text editing and styling. Human controls and revision-checked structured agent commands share the same SVG and undo history. Source editing is secondary. Follow existing Wonop UI: icon tools with accessible names, native document tabs, no duplicate title or visible file controls. Agents handle IO; preserve every open document and draft. Safe image-context rendering, zoom/pan, file open/save, recoverable drafts and validation remain. No vector illustration suite, publishing, pushing, or Excalidraw work. Original sample is read-only task input.

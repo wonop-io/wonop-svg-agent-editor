@@ -248,3 +248,24 @@ Deno.test('native tabs open files and blanks without replacing any existing unsa
   eq(Object.keys(h.stored.documents).length, count);
   eq(h.command('state'), first); eq(h.command('state', {}, 'second'), second);
 });
+
+Deno.test('SVG.js geometry preserves transform order, rotate centers and inverse movement', async () => {
+  const library = await Deno.readTextFile(new URL('./ui/vendor/svgjs-3.2.8.min.js', import.meta.url));
+  (globalThis as any).SVG = new Function(library + '\nreturn SVG;')();
+  await import(`./ui/canvas.js#${crypto.randomUUID()}`);
+  const g = (globalThis as any).SvgCanvas;
+  const near = (a: number, b: number) => ok(Math.abs(a - b) < 1e-8, `${a} should be ${b}`);
+  const m = g.matrix('translate(100 50) rotate(90 10 20) scale(2 3)');
+  const p = g.point(m, { x: 3, y: 4 });
+  near(p.x, 118); near(p.y, 66);
+  const back = g.point(g.inverse(m), p); near(back.x, 3); near(back.y, 4);
+  const parent = g.matrix('translate(20 30) rotate(30) scale(2)');
+  const a = g.point(g.inverse(parent), {x:100,y:200});
+  const b = g.point(g.inverse(parent), {x:120,y:240});
+  const delta = g.point(parent, {x:b.x-a.x,y:b.y-a.y});
+  // Account for parent translation when mapping a delta as a point.
+  near(delta.x - parent[4], 20); near(delta.y - parent[5], 40);
+  eq(g.inverse(g.matrix('scale(0)')), null);
+  eq(g.matrix('matrix(1 0 0 1 12 15)'), [1,0,0,1,12,15]);
+  const skew = g.point(g.matrix('skewX(45)'), {x:10,y:20}); near(skew.x,30); near(skew.y,20);
+});

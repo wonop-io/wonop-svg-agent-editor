@@ -3,22 +3,33 @@
 (function () {
   'use strict';
   const I = [1, 0, 0, 1, 0, 0];
-  const mul = (a,b) => [a[0]*b[0]+a[2]*b[1],a[1]*b[0]+a[3]*b[1],a[0]*b[2]+a[2]*b[3],a[1]*b[2]+a[3]*b[3],a[0]*b[4]+a[2]*b[5]+a[4],a[1]*b[4]+a[3]*b[5]+a[5]];
-  const point = (m,p) => ({x:m[0]*p.x+m[2]*p.y+m[4],y:m[1]*p.x+m[3]*p.y+m[5]});
-  function inverse(m) { const det=m[0]*m[3]-m[1]*m[2];return Math.abs(det)<1e-12?null:[m[3]/det,-m[1]/det,-m[2]/det,m[0]/det,(m[2]*m[5]-m[3]*m[4])/det,(m[1]*m[4]-m[0]*m[5])/det]; }
+  // SVG.js supplies SVG-native affine geometry. Only numeric values/path commands
+  // enter it: never SVG markup, style, URLs, .svg(), or document import methods.
+  const mul = (a,b) => new SVG.Matrix(a).multiply(b).toArray();
+  const point = (m,p) => new SVG.Point(p).transform(m);
+  function inverse(m) {
+    if(Math.abs(m[0]*m[3]-m[1]*m[2])<1e-12)return null;
+    try{return new SVG.Matrix(m).inverse().toArray();}catch{return null;}
+  }
   function matrix(value) {
-    let m=I.slice();
+    let m=new SVG.Matrix();
     for(const match of value.matchAll(/(matrix|translate|scale|rotate|skewX|skewY)\s*\(([^)]*)\)/g)) {
-      const v=match[2].trim().split(/[\s,]+/).filter(Boolean).map(Number);if(!v.length||!v.every(Number.isFinite))continue;
-      let n=I.slice(), a=v[0]*Math.PI/180;
-      if(match[1]==='matrix'&&v.length===6)n=v;
-      if(match[1]==='translate')n=[1,0,0,1,v[0],v[1]||0];
-      if(match[1]==='scale')n=[v[0],0,0,v.length>1?v[1]:v[0],0,0];
-      if(match[1]==='rotate'){n=[Math.cos(a),Math.sin(a),-Math.sin(a),Math.cos(a),0,0];if(v.length===3)n=mul(mul([1,0,0,1,v[1],v[2]],n),[1,0,0,1,-v[1],-v[2]]);}
-      if(match[1]==='skewX')n=[1,0,Math.tan(a),1,0,0];if(match[1]==='skewY')n=[1,Math.tan(a),0,1,0,0];
-      m=mul(m,n);
+      const v=match[2].trim().split(/[\s,]+/).filter(Boolean).map(Number);
+      if(!v.length||!v.every(Number.isFinite))continue;
+      const method=match[1];
+      if(method==='matrix'&&v.length!==6)continue;
+      const next=method==='matrix'?new SVG.Matrix(v):new SVG.Matrix()[method](...v);
+      m=m.multiply(next);
     }
-    return m;
+    return m.toArray();
+  }
+  function geometryBounds(type,value) {
+    try {
+      // PathArray parses to SVG command/number tuples before native getBBox;
+      // it creates only its own hidden measurement path, never imported markup.
+      const box=type==='path'?new SVG.PathArray(value).bbox():new SVG.PointArray(value).bbox();
+      return [box.x,box.y,box.width,box.height].every(Number.isFinite)?{x:box.x,y:box.y,w:box.width,h:box.height}:null;
+    } catch { return null; }
   }
   function setup({overlay,onCommand,onSelection,onText,onError}) {
     const ctx=overlay.getContext('2d');let data={objects:[],viewBox:[0,0,800,500]},items=[],selected=null,tool='select',gesture=null,zoom=1;
@@ -35,8 +46,7 @@
       }
       if(['path','polyline','polygon'].includes(object.type)){
         const values=(a[object.type==='path'?'d':'points']||'').match(/[-+]?(?:\d*\.)?\d+(?:e[-+]?\d+)?/gi)?.map(Number)||[];
-        const xs=values.filter((_,i)=>i%2===0),ys=values.filter((_,i)=>i%2===1);
-        if(xs.length&&ys.length)b={x:Math.min(...xs),y:Math.min(...ys),w:Math.max(...xs)-Math.min(...xs),h:Math.max(...ys)-Math.min(...ys)};
+        b=geometryBounds(object.type,a[object.type==='path'?'d':'points']||'')||b;
         try{if(object.type==='path')path=new Path2D(a.d||'');else{path=new Path2D();values.forEach((n,i)=>{if(i%2===0&&i+1<values.length)i===0?path.moveTo(n,values[i+1]):path.lineTo(n,values[i+1]);});if(object.type==='polygon')path.closePath();}}catch{path=null;}
       }
       return {...object,attributes:a,b,m,parent,inverse:inverse(m),path};
@@ -119,5 +129,5 @@
       cancel(){gesture=null;draw();},
     };
   }
-  globalThis.SvgCanvas={setup,matrix,mul,point,inverse};
+  globalThis.SvgCanvas={setup,matrix,mul,point,inverse,geometryBounds};
 })();
