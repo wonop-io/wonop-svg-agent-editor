@@ -9,6 +9,8 @@
     await wait(() => image.complete && image.naturalWidth > 0, 'Architecture image did not render');
     check(true, 'Architecture sample renders in WebKit image context');
     for (const label of runSvgPreviewChecks(w.SvgPreview.validate)) check(true, label);
+    check(d.getElementById('workspace').classList.contains('preview-only'), 'Canvas-first layout hides source by default');
+    d.getElementById('source-toggle').click();
     const original = source.value, initialUrl = image.src;
     source.value = original.replaceAll('Memory that can stand on its own', 'Edited architecture label'); source.dispatchEvent(new w.Event('input', { bubbles: true }));
     await wait(() => image.src !== initialUrl && image.complete, 'Live preview did not update');

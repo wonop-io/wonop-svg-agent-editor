@@ -37,6 +37,21 @@
   #preview-tools label { margin-left: auto; color: var(--wm-text-dim, #73737b); }
   select { border: 0; background: transparent; padding: 5px; }
   #zoom-value { min-width: 48px; text-align: center; font-variant-numeric: tabular-nums; }
+  #drawing-area { min-height: 0; flex: 1; display: flex; }
+  #tools { width: 68px; flex: none; display: flex; flex-direction: column; padding: 6px 4px; gap: 4px; background: var(--wm-content, #fafafa); }
+  #tools button { padding: 6px 4px; }
+  #tools button[aria-pressed="true"] { background: var(--wm-fill-strong, #8882); font-weight: 600; }
+  .tool-space { flex: 1; }
+  #selection-tools { min-height: 36px; display: flex; align-items: center; padding: 0 8px; gap: 4px; }
+  #selected-name { margin-right: auto; color: var(--wm-text-dim, #73737b); }
+  #surface { position: relative; flex: none; }
+  #overlay { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
+  #file-menu { position: relative; }
+  summary { padding: 6px 10px; cursor: pointer; border-radius: 6px; }
+  .file-actions { position: absolute; z-index: 10; top: 36px; left: 0; min-width: 180px; padding: 6px; display: flex; flex-direction: column; background: var(--wm-surface, #fafafa); box-shadow: 0 6px 24px #0003; border-radius: 8px; }
+  .file-actions button { text-align: left; }
+  #object-list { display: flex; flex-direction: column; max-height: 50vh; overflow: auto; }
+  #object-list button { text-align: left; }
   #viewport { flex: 1; min-height: 0; overflow: auto; background: var(--wm-fill, #8881); cursor: grab; touch-action: pan-x pan-y; }
   #viewport.panning { cursor: grabbing; user-select: none; }
   #canvas { display: flex; align-items: center; justify-content: center; width: max-content; height: max-content; min-width: 100%; min-height: 100%; padding: 24px; }
@@ -68,27 +83,36 @@
   <header data-wm-drag><h1>SVG Editor</h1><span id="filename">Untitled.svg</span></header>
   <nav aria-label="Document">
     <button id="open" title="Open SVG (⌘O)">Open…</button>
-    <button id="new">New</button>
-    <button id="drafts">Drafts…</button>
-    <span class="space"></span>
-    <button id="source-toggle" aria-pressed="true">Source</button>
-    <button id="discard">Discard edits…</button>
-    <button id="save-as">Save as…</button>
+    <details id="file-menu"><summary aria-label="More document actions">File</summary><div class="file-actions">
+      <button id="new">New diagram</button><button id="save-as">Save as…</button><button id="drafts">Recover draft…</button>
+      <button id="source-toggle" aria-pressed="false">SVG source</button><button id="objects">Objects…</button><button id="discard">Discard edits…</button>
+    </div></details><span class="space"></span>
     <button id="save" class="primary" title="Save SVG (⌘S)">Save</button>
   </nav>
-  <div id="workspace">
+  <div id="workspace" class="preview-only">
     <section id="source-pane" aria-label="SVG source editor">
       <div class="pane-heading"><label for="source">SVG source</label><span id="position">Line 1, col 1</span></div>
       <textarea id="source" aria-label="SVG source" spellcheck="false" autocapitalize="off" autocomplete="off" wrap="off" maxlength="200000"></textarea>
     </section>
-    <section id="preview-pane" aria-label="Live preview">
-      <div id="preview-tools" role="toolbar" aria-label="Preview controls">
-        <button id="fit">Fit</button><button id="actual">100%</button>
-        <button id="zoom-out" aria-label="Zoom out">−</button><span id="zoom-value">100%</span><button id="zoom-in" aria-label="Zoom in">+</button>
-        <label for="paper">Paper</label><select id="paper" aria-label="Preview background"><option value="light">Light</option><option value="dark">Dark</option><option value="none">None</option></select>
+    <section id="preview-pane" aria-label="Diagram canvas">
+      <div id="selection-tools" hidden><span id="selected-name"></span><button id="edit-label" hidden>Edit text…</button><button id="style">Style…</button><button id="delete">Delete</button></div>
+      <div id="drawing-area">
+        <aside id="tools" aria-label="Drawing tools">
+          <button data-tool="select" aria-pressed="true" title="Select and move (V)">Select</button>
+          <button data-tool="rect" aria-pressed="false" title="Draw a box (R)">Box</button>
+          <button data-tool="ellipse" aria-pressed="false" title="Draw an ellipse (E)">Ellipse</button>
+          <button data-tool="line" aria-pressed="false" title="Draw a line (L)">Line</button>
+          <button data-tool="text" aria-pressed="false" title="Add text (T)">Text</button>
+          <button data-tool="hand" aria-pressed="false" title="Pan the canvas (H)">Hand</button>
+          <span class="tool-space"></span><button id="undo" title="Undo (⌘Z)">Undo</button><button id="redo" title="Redo (⇧⌘Z)">Redo</button>
+        </aside>
+        <div id="viewport" tabindex="0" aria-label="Diagram viewport; Hand tool to pan, control-scroll to zoom">
+          <div id="canvas"><div id="surface"><img id="image" alt="SVG diagram" draggable="false" hidden><canvas id="overlay" tabindex="0" aria-label="Diagram canvas. Use drawing tools, click to select, drag to move, drag corner handles to resize. Brackets cycle objects; arrows move selection." hidden></canvas></div><p id="preview-empty">Choose a drawing tool or open an SVG diagram.</p></div>
+        </div>
       </div>
-      <div id="viewport" tabindex="0" aria-label="SVG preview; drag to pan, control-scroll to zoom">
-        <div id="canvas"><img id="image" alt="Rendered SVG diagram" draggable="false" hidden><p id="preview-empty">Open an SVG or edit the source to preview a diagram.</p></div>
+      <div id="preview-tools" role="toolbar" aria-label="Canvas view">
+        <button id="fit">Fit</button><button id="actual">100%</button><button id="zoom-out" aria-label="Zoom out">−</button><span id="zoom-value">100%</span><button id="zoom-in" aria-label="Zoom in">+</button>
+        <label for="paper">Paper</label><select id="paper" aria-label="Canvas background"><option value="light">Light</option><option value="dark">Dark</option><option value="none">None</option></select>
       </div>
     </section>
   </div>
@@ -103,7 +127,11 @@
 </dialog>
 <dialog id="discard-dialog"><h2>Discard these edits?</h2><p>This returns the source to its last saved version and removes these edits from draft recovery.</p><div class="actions"><button id="discard-cancel">Keep editing</button><button id="discard-confirm" class="primary">Discard edits</button></div></dialog>
 <dialog id="draft-dialog"><h2>Recover a draft</h2><p>Unsaved source is kept when a window closes or Wonop restarts.</p><div id="draft-list"></div><div class="actions"><button id="draft-close">Done</button></div></dialog>
+<dialog id="text-dialog"><form id="text-form"><h2 id="text-title">Add text</h2><label for="label-text">Label</label><input id="label-text" required maxlength="2000" value="Text"><div class="actions"><button type="button" id="text-cancel">Cancel</button><button class="primary">Apply</button></div></form></dialog>
+<dialog id="style-dialog"><form id="style-form"><h2>Object style</h2><label for="fill">Fill</label><input id="fill" value="none" placeholder="none or #ffffff"><label for="stroke">Stroke</label><input id="stroke" value="#475569"><label for="stroke-width">Stroke width</label><input id="stroke-width" type="number" min="0" max="1000" step="0.5" value="2"><div id="font-size-field" hidden><label for="font-size">Text size</label><input id="font-size" type="number" min="1" max="1000" value="24"></div><div class="actions"><button type="button" id="style-cancel">Cancel</button><button class="primary">Apply</button></div></form></dialog>
+<dialog id="objects-dialog"><h2>Diagram objects</h2><p>Select an object, then use the arrow keys or drag it on the canvas.</p><div id="object-list"></div><div class="actions"><button id="objects-close">Done</button></div></dialog>
 <script src="preview.js"></script>
+<script src="canvas.js"></script>
 <script src="editor.js"></script>
 </body>
 </html>

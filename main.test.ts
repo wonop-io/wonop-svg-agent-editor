@@ -38,7 +38,7 @@ async function harness(saved?: any) {
   const ctx = (windowId = 'w1') => ({ windowId, hostId: windowId, caller: 'test' });
   const command = (name: string, args: any = {}, windowId = 'w1') => h.spec.commands[name](args, ctx(windowId));
   const open = (windowId = 'w1', params = {}) => h.spec.onOpen({ windowId, params });
-  const edit = (text: string, windowId = 'w1') => { const s = command('state', {}, windowId); return command('edit', { id: s.id, text, revision: s.revision + 1 }, windowId); };
+  const edit = (text: string, windowId = 'w1') => { const s = command('state', {}, windowId); return command('edit', { id: s.id, text, revision: s.revision + 1, expectedRevision: s.revision }, windowId); };
   return Object.assign(h, { command, open, edit });
 }
 Deno.test('open, edit Unicode, atomic save and reopen preserve exact SVG source', async () => {
@@ -71,7 +71,7 @@ Deno.test('unsaved guard, explicit discard, stale edits and separate windows', a
   const h = await harness(); h.open(); h.open('w2'); const a = h.command('state'); h.edit('invalid SVG');
   await rejects(() => h.command('open', { path: 'a.svg' }), 'unsaved'); await rejects(() => h.command('newDocument'), 'unsaved');
   eq(h.command('state', {}, 'w2').dirty, false); eq(h.command('state').text, 'invalid SVG');
-  h.command('edit', { id: a.id, text: 'late', revision: 0 }); eq(h.command('state').text, 'invalid SVG');
+  await rejects(() => h.command('edit', { id: a.id, text: 'late', revision: 0, expectedRevision: 0 }), 'invalid_args'); eq(h.command('state').text, 'invalid SVG');
   await rejects(() => h.command('edit', { id: 'wrong', text: SVG, revision: 4 }), 'stale_document');
   h.command('discard'); eq(h.command('state').text, a.text); eq(h.command('state').dirty, false);
 });
@@ -105,4 +105,72 @@ Deno.test('a directory ending in .svg cannot be mistaken for a saved file', asyn
   await rejects(() => h.command('save', { path: 'folder.svg' }), 'file_error');
   eq(h.command('state').dirty, true); eq(h.command('state').path, '');
   ok(![...h.files.keys()].some(p => p.includes('.svg-editor-')));
+});
+function stamped(h: any) { const s = h.command('state'); return { documentId: s.id, expectedRevision: s.revision }; }
+Deno.test('structured agents and human actions share objects, source, revisions and history', async () => {
+  const h = await harness(); h.open();
+  const added = h.command('add', { ...stamped(h), type: 'rect', x: 10, y: 20, width: 120, height: 80 });
+  eq(added.selectedKey, 'id:shape-1');
+  const objects = h.command('objects'); eq(objects.objects.length, 1); eq(objects.objects[0].attributes.x, '10');
+  eq(objects.revision, h.command('state').revision);
+  h.command('move', { ...stamped(h), key: added.selectedKey, dx: 40, dy: -10 });
+  eq(h.command('objects').objects[0].attributes.transform, 'translate(40 -10)');
+  h.command('resize', { ...stamped(h), key: added.selectedKey, x: 10, y: 20, width: 200, height: 100 });
+  eq(h.command('objects').objects[0].attributes.width, '200');
+  h.command('set', { ...stamped(h), key: added.selectedKey, property: 'fill', value: '#f0f0f0' });
+  ok(h.command('state').text.includes('fill:#f0f0f0'));
+  const final = h.command('state').text;
+  h.command('undo', stamped(h)); ok(!h.command('state').text.includes('fill:#f0f0f0'));
+  h.command('redo', stamped(h)); eq(h.command('state').text, final);
+  h.command('remove', { ...stamped(h), key: added.selectedKey }); eq(h.command('objects').objects.length, 0);
+  h.command('undo', stamped(h)); eq(h.command('objects').objects.length, 1); eq(h.labels.get('w1').dirty, true);
+});
+Deno.test('all drawing primitives and Unicode text save and reopen in the shared SVG', async () => {
+  const h = await harness(); h.open();
+  for (const type of ['rect', 'ellipse', 'line', 'text']) h.command('add', { ...stamped(h), type, x: 40, y: 60, width: 100, height: type === 'line' ? -30 : 70, text: 'Service → Mémoire 🦊 & <queue>' });
+  const text = h.command('objects').objects.find((o: any) => o.type === 'text');
+  eq(text.text, 'Service → Mémoire 🦊 & <queue>');
+  h.command('set', { ...stamped(h), key: text.key, property: 'text', value: 'Updated <label> & "safe"' });
+  eq(h.command('objects').objects.find((o: any) => o.key === text.key).text, 'Updated <label> & "safe"');
+  const saved = h.command('state').text; ok(saved.includes('&lt;label&gt;'));
+  await h.command('save', { path: 'drawn.svg' }); await h.command('open', { path: 'drawn.svg' });
+  eq(h.command('state').text, saved); eq(h.command('objects').objects.length, 4);
+});
+Deno.test('revision checks reject stale visual mutations and preserve conflicting raw source as a draft', async () => {
+  const h = await harness(); h.open(); const before = h.command('state'), stamp = stamped(h);
+  h.command('add', { ...stamp, type: 'rect', x: 10, y: 10 }); const after = h.command('state').text;
+  await rejects(() => h.command('add', { ...stamp, type: 'text', x: 10, y: 10 }), 'invalid_args');
+  eq(h.command('state').text, after);
+  await rejects(() => h.command('edit', { id: before.id, expectedRevision: before.revision, revision: before.revision + 1, text: '<svg broken local draft' }), 'invalid_args');
+  eq(h.command('state').text, after); ok(h.stored.documents[`conflict-${before.id}-w1`].text.includes('broken local'));
+});
+Deno.test('visual edits preserve unedited SVG definitions, comments, styles and group transforms', async () => {
+  const h = await harness(); h.open();
+  const prefix = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500">\n<!-- keep exact -->\n<defs><linearGradient id="paint"><stop stop-color="#fff"/></linearGradient></defs>\n<style>.label {font-size:20px;fill:blue}</style>\n';
+  const original = prefix + '<g transform="translate(30 40)"><rect id="box" x="5" y="8" width="100" height="80" fill="url(#paint)"/><text class="label" x="10" y="20">Queue</text></g>\n</svg>';
+  h.edit(original); const objects = h.command('objects'); eq(objects.objects.length, 2); eq(objects.objects[0].transforms, ['', 'translate(30 40)', '']);
+  h.command('move', { ...stamped(h), key: 'id:box', dx: 10, dy: 20 }); ok(h.command('state').text.startsWith(prefix));
+  const text = h.command('objects').objects.find((o: any) => o.type === 'text');
+  h.command('set', { ...stamped(h), key: text.key, property: 'text', value: 'Worker' });
+  ok(h.command('state').text.includes('<text class="label" x="10" y="20">Worker</text>')); ok(h.command('state').text.startsWith(prefix));
+});
+Deno.test('structured API refuses active markup, invalid geometry, unsafe properties and malformed XML', async () => {
+  const h = await harness(); h.open(); h.command('add', { ...stamped(h), type: 'rect', x: 0, y: 0 });
+  const key = h.command('objects').objects[0].key, before = h.command('state').text;
+  for (const [property, value] of [['onload','alert(1)'],['href','javascript:alert(1)'],['fill','url(https://evil.test/x)'],['transform','rotate(1)'],['width','-5']]) {
+    await rejects(() => h.command('set', { ...stamped(h), key, property, value }), 'invalid_args'); eq(h.command('state').text, before);
+  }
+  await rejects(() => h.command('add', { ...stamped(h), type: 'script', x: 0, y: 0 }), 'invalid_args');
+  await rejects(() => h.command('move', { ...stamped(h), key, dx: Infinity, dy: 0 }), 'invalid_args');
+  h.edit('<svg xmlns="http://www.w3.org/2000/svg"><g></svg>'); ok(h.command('objects').error);
+  await rejects(() => h.command('add', { ...stamped(h), type: 'rect', x: 0, y: 0 }), 'invalid_args');
+  h.edit('<!DOCTYPE svg [<!ENTITY x SYSTEM "file:///etc/passwd">]><svg xmlns="http://www.w3.org/2000/svg"/>'); ok(h.command('objects').error);
+});
+Deno.test('self-closing roots/text, quoted greater-than and duplicate ids are handled without dropping markup', async () => {
+  const h = await harness(); h.open(); h.edit('<svg xmlns="http://www.w3.org/2000/svg"/>');
+  h.command('add', { ...stamped(h), type: 'text', x: 20, y: 20, text: 'A > B' }); eq(h.command('objects').objects[0].text, 'A > B');
+  h.edit('<svg xmlns="http://www.w3.org/2000/svg"><text id="same" data-note="a > b"/><text id="same">Second</text></svg>');
+  const objects = h.command('objects').objects; ok(objects[0].key !== objects[1].key);
+  h.command('set', { ...stamped(h), key: objects[0].key, property: 'text', value: 'First' });
+  eq(h.command('objects').objects.map((o: any) => o.text), ['First','Second']); ok(h.command('state').text.includes('data-note="a &gt; b"'));
 });

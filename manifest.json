@@ -2,8 +2,8 @@
   "id": "svg-editor",
   "apiVersion": 1,
   "name": "SVG Editor",
-  "version": "0.2.0",
-  "description": "View local SVG diagrams and edit their source with a safe live preview, zoom, pan and recoverable drafts.",
+  "version": "0.3.0",
+  "description": "Draw and edit SVG diagrams on a minimal canvas, with shared structured agent commands, safe preview and recoverable files.",
   "icon": "icon.svg",
   "entry": "main.ts",
   "ui": "ui/index.html",
@@ -27,12 +27,13 @@
       }
     },
     "edit": {
-      "help": "Update source and persist a draft; revision must increase",
+      "help": "Replace source against the exact expectedRevision; visual and agent edits share this revision.",
       "args": {
         "id": "string",
         "text": "string",
         "revision": "number",
-        "windowId": "string?"
+        "windowId": "string?",
+        "expectedRevision": "number"
       }
     },
     "save": {
@@ -58,6 +59,90 @@
       "help": "Recover a saved draft by its id",
       "args": {
         "id": "string",
+        "windowId": "string?"
+      }
+    },
+    "objects": {
+      "help": "Read selectable diagram objects and viewBox with documentId/revision for structured edits. Keys are revision-scoped; read again after edits.",
+      "args": {
+        "windowId": "string?"
+      }
+    },
+    "add": {
+      "help": "Draw rect, ellipse, line or text in SVG coordinates; width/height are signed line deltas for lines.",
+      "args": {
+        "documentId": "string",
+        "expectedRevision": "number",
+        "windowId": "string?",
+        "type": "string",
+        "x": "number",
+        "y": "number",
+        "width": "number?",
+        "height": "number?",
+        "text": "string?",
+        "fill": "string?",
+        "stroke": "string?",
+        "strokeWidth": "number?",
+        "fontSize": "number?"
+      }
+    },
+    "set": {
+      "help": "Change one safe object property or its text label. Geometry/color/text are data; arbitrary SVG attributes are refused.",
+      "args": {
+        "documentId": "string",
+        "expectedRevision": "number",
+        "windowId": "string?",
+        "key": "string",
+        "property": "string",
+        "value": "string"
+      }
+    },
+    "move": {
+      "help": "Move an object by dx/dy in its parent coordinate system.",
+      "args": {
+        "documentId": "string",
+        "expectedRevision": "number",
+        "windowId": "string?",
+        "key": "string",
+        "dx": "number",
+        "dy": "number"
+      }
+    },
+    "resize": {
+      "help": "Set primitive geometry in its local coordinate system; boxes/ellipses/circles/lines only.",
+      "args": {
+        "documentId": "string",
+        "expectedRevision": "number",
+        "windowId": "string?",
+        "key": "string",
+        "x": "number",
+        "y": "number",
+        "width": "number",
+        "height": "number"
+      }
+    },
+    "remove": {
+      "help": "Delete a selectable diagram object.",
+      "args": {
+        "documentId": "string",
+        "expectedRevision": "number",
+        "windowId": "string?",
+        "key": "string"
+      }
+    },
+    "undo": {
+      "help": "Undo the most recent shared document edit.",
+      "args": {
+        "documentId": "string",
+        "expectedRevision": "number",
+        "windowId": "string?"
+      }
+    },
+    "redo": {
+      "help": "Redo the most recently undone shared document edit.",
+      "args": {
+        "documentId": "string",
+        "expectedRevision": "number",
         "windowId": "string?"
       }
     }
