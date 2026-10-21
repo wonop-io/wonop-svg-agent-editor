@@ -16,11 +16,6 @@
   :focus-visible { outline: 2px solid var(--wm-text, #555); outline-offset: -2px; }
   input { background: var(--wm-content, #fff); border: 1px solid var(--wm-hairline, #8885); border-radius: 6px; padding: 9px; width: 100%; }
   main { height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
-  header { height: 44px; flex: none; display: flex; align-items: center; gap: 12px; padding: 0 108px 0 12px; }
-  h1 { font-size: 15px; font-weight: 600; margin: 0; white-space: nowrap; }
-  #filename { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--wm-text-dim, #73737b); }
-  nav { display: flex; flex: none; align-items: center; gap: 2px; padding: 4px 8px; flex-wrap: wrap; background: var(--wm-fill, #8881); }
-  nav .space { flex: 1; }
   #workspace { min-height: 0; flex: 1; display: grid; grid-template-columns: minmax(240px, 39%) minmax(0, 1fr); }
   #workspace.preview-only { grid-template-columns: minmax(0, 1fr); }
   #workspace.preview-only #source-pane { display: none; }
@@ -32,24 +27,20 @@
   textarea { flex: 1; width: 100%; min-height: 0; resize: none; border: 0; border-radius: 0; outline: none; padding: 8px 12px 16px; font: 13px/1.65 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; tab-size: 2; white-space: pre; color: inherit; caret-color: currentColor; background: var(--wm-content, #fafafa); }
   textarea:focus-visible { outline: 1px solid var(--wm-hairline, #8886); }
   ::selection { background: var(--wm-fill-strong, #8885); }
-  #preview-pane { display: flex; flex-direction: column; }
+  #preview-pane { position: relative; display: flex; flex-direction: column; }
   #preview-tools { display: flex; align-items: center; gap: 2px; min-height: 36px; padding: 0 8px; flex-wrap: wrap; }
-  #preview-tools label { margin-left: auto; color: var(--wm-text-dim, #73737b); }
+  #preview-tools .space { flex: 1; }
   select { border: 0; background: transparent; padding: 5px; }
-  #zoom-value { min-width: 48px; text-align: center; font-variant-numeric: tabular-nums; }
+  #actual { min-width: 48px; font-variant-numeric: tabular-nums; }
+  button svg { width: 16px; height: 16px; display: block; pointer-events: none; }
+  .icon { width: 32px; padding: 8px; display: inline-flex; align-items: center; justify-content: center; }
   #drawing-area { min-height: 0; flex: 1; display: flex; }
-  #tools { width: 68px; flex: none; display: flex; flex-direction: column; padding: 6px 4px; gap: 4px; background: var(--wm-content, #fafafa); }
-  #tools button { padding: 6px 4px; }
+  #tools { width: 44px; flex: none; display: flex; flex-direction: column; align-items: center; padding: 8px 6px; gap: 4px; background: var(--wm-content, #fafafa); }
   #tools button[aria-pressed="true"] { background: var(--wm-fill-strong, #8882); font-weight: 600; }
   .tool-space { flex: 1; }
-  #selection-tools { height: 36px; flex: none; display: flex; align-items: center; padding: 0 8px; gap: 4px; }
-  #selected-name { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-right: auto; color: var(--wm-text-dim, #73737b); }
+  #selection-tools { position: absolute; z-index: 2; top: 8px; left: 52px; display: flex; align-items: center; gap: 2px; padding: 2px; border-radius: 6px; background: var(--wm-surface, #fafafa); box-shadow: 0 1px 4px #0002; }
   #surface { position: relative; flex: none; }
   #overlay { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
-  #file-menu { position: relative; }
-  summary { padding: 6px 10px; cursor: pointer; border-radius: 6px; }
-  .file-actions { position: absolute; z-index: 10; top: 36px; left: 0; min-width: 180px; padding: 6px; display: flex; flex-direction: column; background: var(--wm-surface, #fafafa); box-shadow: 0 6px 24px #0003; border-radius: 8px; }
-  .file-actions button { text-align: left; }
   #object-list { display: flex; flex-direction: column; max-height: 50vh; overflow: auto; }
   #object-list button { text-align: left; }
   #viewport { flex: 1; min-height: 0; overflow: auto; background: var(--wm-fill, #8881); cursor: grab; touch-action: pan-x pan-y; }
@@ -73,60 +64,40 @@
     #workspace { grid-template-columns: minmax(0, 1fr); grid-template-rows: 42% minmax(0, 1fr); }
     #source-pane { border-right: 0; border-bottom: 1px solid var(--wm-hairline, #8883); }
     #workspace.preview-only { grid-template-rows: minmax(0, 1fr); }
-    #filename { font-size: 13px; }
     #preview-tools { padding: 0 4px; }
   }
 </style>
 </head>
 <body>
 <main>
-  <header data-wm-drag><h1>SVG Editor</h1><span id="filename">Untitled.svg</span></header>
-  <nav aria-label="Document">
-    <button id="open" title="Open SVG (⌘O)">Open…</button>
-    <details id="file-menu"><summary aria-label="More document actions">File</summary><div class="file-actions">
-      <button id="new">New diagram</button><button id="save-as">Save as…</button><button id="drafts">Recover draft…</button>
-      <button id="source-toggle" aria-pressed="false">SVG source</button><button id="objects">Objects…</button><button id="discard">Discard edits…</button>
-    </div></details><span class="space"></span>
-    <button id="save" class="primary" title="Save SVG (⌘S)">Save</button>
-  </nav>
   <div id="workspace" class="preview-only">
     <section id="source-pane" aria-label="SVG source editor">
       <div class="pane-heading"><label for="source">SVG source</label><span id="position">Line 1, col 1</span></div>
       <textarea id="source" aria-label="SVG source" spellcheck="false" autocapitalize="off" autocomplete="off" wrap="off" maxlength="200000"></textarea>
     </section>
     <section id="preview-pane" aria-label="Diagram canvas">
-      <div id="selection-tools"><span id="selected-name">Choose a tool, or click an object to select it.</span><button id="edit-label" hidden>Edit text…</button><button id="style" hidden>Style…</button><button id="delete" hidden>Delete</button></div>
+      <div id="selection-tools" role="toolbar" aria-label="Selected object" hidden><button id="edit-label" class="icon" aria-label="Edit text" title="Edit text" hidden><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h12M10 4v12M7 16h6"/></svg></button><button id="style" class="icon" aria-label="Object style" title="Object style" ><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 3l4 4-8 8H5v-4zM11 5l4 4M3 18h14"/></svg></button><button id="delete" class="icon" aria-label="Delete object" title="Delete object (Backspace)" ><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h14M7 5V3h6v2M5 5l1 12h8l1-12M8 8v6M12 8v6"/></svg></button></div>
       <div id="drawing-area">
         <aside id="tools" aria-label="Drawing tools">
-          <button data-tool="select" aria-pressed="true" title="Select and move (V)">Select</button>
-          <button data-tool="rect" aria-pressed="false" title="Draw a box (R)">Box</button>
-          <button data-tool="ellipse" aria-pressed="false" title="Draw an ellipse (E)">Ellipse</button>
-          <button data-tool="line" aria-pressed="false" title="Draw a line (L)">Line</button>
-          <button data-tool="text" aria-pressed="false" title="Add text (T)">Text</button>
-          <button data-tool="hand" aria-pressed="false" title="Pan the canvas (H)">Hand</button>
-          <span class="tool-space"></span><button id="undo" title="Undo (⌘Z)">Undo</button><button id="redo" title="Redo (⇧⌘Z)">Redo</button>
+          <button class="icon" data-tool="select" aria-label="Select and move" aria-pressed="true" title="Select and move (V)"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 2l12 8-6 1-3 6z"/></svg></button>
+          <button class="icon" data-tool="rect" aria-label="Draw box" aria-pressed="false" title="Draw box (R)"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="14" height="12" rx="1"/></svg></button>
+          <button class="icon" data-tool="ellipse" aria-label="Draw ellipse" aria-pressed="false" title="Draw ellipse (E)"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="10" cy="10" rx="7" ry="6"/></svg></button>
+          <button class="icon" data-tool="line" aria-label="Draw line" aria-pressed="false" title="Draw line (L)"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 16L16 4"/><circle cx="4" cy="16" r="1"/><circle cx="16" cy="4" r="1"/></svg></button>
+          <button class="icon" data-tool="text" aria-label="Add text" aria-pressed="false" title="Add text (T)"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h14M10 4v12M7 16h6"/></svg></button>
+          <button class="icon" data-tool="hand" aria-label="Pan canvas" aria-pressed="false" title="Pan canvas (H)"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 10V5a1.5 1.5 0 013 0v5-6a1.5 1.5 0 013 0v6-5a1.5 1.5 0 013 0v6-3a1.5 1.5 0 013 0v5c0 4-3 6-6 6H9c-2 0-3-1-4-3l-3-5a1.5 1.5 0 012-2l2 2z"/></svg></button>
+          <span class="tool-space"></span><button id="undo" class="icon" aria-label="Undo" title="Undo (⌘Z)" ><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4L3 8l4 4M3 8h8a5 5 0 010 10"/></svg></button><button id="redo" class="icon" aria-label="Redo" title="Redo (⇧⌘Z)" ><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 4l4 4-4 4M17 8H9a5 5 0 000 10"/></svg></button>
         </aside>
         <div id="viewport" tabindex="0" aria-label="Diagram viewport; Hand tool to pan, control-scroll to zoom">
-          <div id="canvas"><div id="surface"><img id="image" alt="SVG diagram" draggable="false" hidden><canvas id="overlay" tabindex="0" aria-label="Diagram canvas. Use drawing tools, click to select, drag to move, drag corner handles to resize. Brackets cycle objects; arrows move selection." hidden></canvas></div><p id="preview-empty">Choose a drawing tool or open an SVG diagram.</p></div>
+          <div id="canvas"><div id="surface"><img id="image" alt="SVG diagram" draggable="false" hidden><canvas id="overlay" tabindex="0" aria-label="Diagram canvas. Use drawing tools, click to select, drag to move, drag corner handles to resize. Brackets cycle objects; arrows move selection." hidden></canvas></div><p id="preview-empty">Choose a drawing tool to begin.</p></div>
         </div>
       </div>
       <div id="preview-tools" role="toolbar" aria-label="Canvas view">
-        <button id="fit">Fit</button><button id="actual">100%</button><button id="zoom-out" aria-label="Zoom out">−</button><span id="zoom-value">100%</span><button id="zoom-in" aria-label="Zoom in">+</button>
-        <label for="paper">Paper</label><select id="paper" aria-label="Canvas background"><option value="light">Light</option><option value="dark">Dark</option><option value="none">None</option></select>
+        <button id="fit" class="icon" aria-label="Fit diagram" title="Fit diagram (0)" ><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3H3v4M13 3h4v4M3 13v4h4M17 13v4h-4"/></svg></button><button id="zoom-out" class="icon" aria-label="Zoom out" title="Zoom out (−)" ><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10h12"/></svg></button><button id="actual" aria-label="Actual size" title="Actual size"><span id="zoom-value">100%</span></button><button id="zoom-in" class="icon" aria-label="Zoom in" title="Zoom in (+)" ><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10h12M10 4v12"/></svg></button><span class="space"></span><button id="objects" class="icon" aria-label="Diagram objects" title="Diagram objects" ><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4h10M7 10h10M7 16h10"/><circle cx="3" cy="4" r=".5"/><circle cx="3" cy="10" r=".5"/><circle cx="3" cy="16" r=".5"/></svg></button><button id="source-toggle" class="icon" aria-label="SVG source" title="SVG source" aria-pressed="false"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 5l-4 5 4 5M14 5l4 5-4 5M12 3L8 17"/></svg></button><select id="paper" aria-label="Canvas background" title="Canvas background"><option value="light">Light</option><option value="dark">Dark</option><option value="none">None</option></select>
       </div>
     </section>
   </div>
   <wm-notice id="notice" tone="amber" hidden role="status"><span id="notice-text"></span><button id="locate-error" hidden>Go to error</button></wm-notice>
 </main>
-<dialog id="path-dialog">
-  <form id="path-form">
-    <h2 id="path-title">Open SVG</h2><p id="path-help">Enter an absolute path or a path relative to this workspace.</p>
-    <label for="path">SVG file</label><input id="path" required placeholder="diagrams/architecture.svg" autocomplete="off">
-    <div class="actions"><button type="button" id="path-cancel">Cancel</button><button class="primary" id="path-submit">Open</button></div>
-  </form>
-</dialog>
-<dialog id="discard-dialog"><h2>Discard these edits?</h2><p>This returns the source to its last saved version and removes these edits from draft recovery.</p><div class="actions"><button id="discard-cancel">Keep editing</button><button id="discard-confirm" class="primary">Discard edits</button></div></dialog>
-<dialog id="draft-dialog"><h2>Recover a draft</h2><p>Unsaved source is kept when a window closes or Wonop restarts.</p><div id="draft-list"></div><div class="actions"><button id="draft-close">Done</button></div></dialog>
 <dialog id="text-dialog"><form id="text-form"><h2 id="text-title">Add text</h2><label for="label-text">Label</label><input id="label-text" required maxlength="2000" value="Text"><div class="actions"><button type="button" id="text-cancel">Cancel</button><button class="primary">Apply</button></div></form></dialog>
 <dialog id="style-dialog"><form id="style-form"><h2>Object style</h2><label for="fill">Fill</label><input id="fill" value="none" placeholder="none or #ffffff"><label for="stroke">Stroke</label><input id="stroke" value="#475569"><label for="stroke-width">Stroke width</label><input id="stroke-width" type="number" min="0" max="1000" step="0.5" value="2"><div id="font-size-field" hidden><label for="font-size">Text size</label><input id="font-size" type="number" min="1" max="1000" value="24"></div><div class="actions"><button type="button" id="style-cancel">Cancel</button><button class="primary">Apply</button></div></form></dialog>
 <dialog id="objects-dialog"><h2>Diagram objects</h2><p>Select an object, then use the arrow keys or drag it on the canvas.</p><div id="object-list"></div><div class="actions"><button id="objects-close">Done</button></div></dialog>

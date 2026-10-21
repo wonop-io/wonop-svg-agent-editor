@@ -3,7 +3,7 @@
   const $ = id => document.getElementById(id);
   const source = $('source'), image = $('image'), viewport = $('viewport');
   let doc = null, revision = 0, editQueue = Promise.resolve(), validation = {}, timer;
-  let scale = 1, dimensions = [800, 500], fitMode = true, pathMode = 'open', operation = false;
+  let scale = 1, dimensions = [800, 500], fitMode = true, operation = false;
   let latestUrl = '', drag = null, fileError = '', pendingEdits = 0;
   let textTarget = null, styleTarget = null, sourceConflict = null;
   function notice(message, tone = 'amber', locate = false) {
@@ -14,12 +14,9 @@
     if (fileError) return notice(fileError, 'red');
     if (validation.error) return notice(`${validation.error} ${latestUrl ? 'Showing the last valid preview. ' : ''}Your source is kept.`, 'red', !!validation.line);
     if (validation.external) return notice('External images, fonts and styles are unavailable in this safe preview. Use inline resources.');
-    notice(doc && source.value !== doc.savedText ? 'Unsaved edits. Your draft is kept for recovery.' : '');
+    notice('');
   }
   function controls() {
-    $('save').disabled = operation || !doc;
-    $('save-as').disabled = operation || !doc;
-    $('discard').disabled = operation || !doc || source.value === doc.savedText;
     $('undo').disabled = operation || !doc?.canUndo; $('redo').disabled = operation || !doc?.canRedo;
   }
   function position() {
@@ -71,7 +68,6 @@
     // Keep rejected queue handled until the next command awaits it.
     editQueue.catch(() => {});
     clearTimeout(timer); timer = setTimeout(preview, 180); controls(); position(); message();
-    $('filename').textContent = `${doc.name} • Unsaved`;
   }
   function receive(next) {
     const changed = !doc || next.id !== doc.id;
@@ -97,8 +93,6 @@
         }
       } catch { /* Persisted isolate draft remains authoritative when cache is unreadable. */ }
     }
-    $('filename').textContent = `${doc.name}${source.value !== doc.savedText ? ' • Unsaved' : ''}`;
-    $('filename').title = doc.path || 'Not saved to a file';
     canvas.update({ ...next.scene, documentId: next.id, revision: next.revision });
     if (next.selectedKey) canvas.select(next.selectedKey);
     controls(); position();
@@ -111,39 +105,12 @@
     catch (error) { fileError = error.message || String(error); message(); return false; }
     finally { operation = false; controls(); }
   }
-  function pathSheet(mode) {
-    pathMode = mode; $('path-title').textContent = mode === 'open' ? 'Open SVG' : 'Save SVG as';
-    $('path-submit').textContent = mode === 'open' ? 'Open' : 'Save';
-    $('path-help').textContent = mode === 'open' ? 'Enter an absolute path or a path relative to this workspace.' : 'Choose a new .svg file. Existing files are never overwritten by Save as.';
-    $('path').value = mode === 'save' ? doc?.path?.replace(/\.svg$/i, '-copy.svg') || '' : '';
-    $('file-menu').open = false; $('path-dialog').showModal(); $('path').focus();
-  }
-  function save() {
-    if (!doc) return;
-    preview();
-    if (!doc.path) return pathSheet('save');
-    if (validation.error && !confirm('This SVG has validation errors. Save the source anyway? Your edits will be saved exactly as written.')) return;
-    call('save');
-  }
   source.addEventListener('input', edit);
   source.addEventListener('click', position); source.addEventListener('keyup', position);
   source.addEventListener('keydown', event => {
     if (event.key === 'Tab' && !event.shiftKey) { event.preventDefault(); document.execCommand('insertText', false, '  '); }
   });
-  $('open').onclick = () => pathSheet('open'); $('save-as').onclick = () => pathSheet('save'); $('save').onclick = save;
-  $('new').onclick = () => call('newDocument');
-  $('discard').onclick = () => $('discard-dialog').showModal();
-  $('discard-cancel').onclick = () => $('discard-dialog').close();
-  $('discard-confirm').onclick = async () => { $('discard-dialog').close(); await call('discard'); };
-  $('path-cancel').onclick = () => $('path-dialog').close();
-  $('path-form').onsubmit = async event => {
-    event.preventDefault(); const path = $('path').value;
-    if (pathMode === 'save') preview();
-    if (pathMode === 'save' && validation.error && !confirm('Save this source with SVG validation errors?')) return;
-    $('path-dialog').close(); if (await call(pathMode === 'open' ? 'open' : 'save', { path })) source.focus();
-  };
   $('source-toggle').onclick = async () => {
-    $('file-menu').open = false;
     if (sourceWrites.blocked && !sourceConflict) { try { sourceConflict = await wm.call('state', {}); } catch { notice('The shared document is unavailable. Keep your source copied before closing.', 'red'); return; } }
     if (sourceConflict) {
       if (!confirm('Use the current shared document? Copy your local source before continuing; this replaces the local source field.')) return;
@@ -160,20 +127,6 @@
     offset += Math.max(0, (validation.column || 1) - 1);
     source.focus(); source.setSelectionRange(offset, offset); source.scrollTop = Math.max(0, (validation.line - 3) * 21.45); position();
   };
-  $('drafts').onclick = async () => {
-    try {
-      await editQueue; const next = await wm.call('state', {}); const list = $('draft-list'); list.replaceChildren();
-      for (const draft of next.drafts) {
-        const button = document.createElement('button'); button.textContent = draft.path || draft.name;
-        if (draft.id === doc?.id) { button.textContent += ' (current)'; button.disabled = true; }
-        button.onclick = async () => { $('draft-dialog').close(); await call('recover', { id: draft.id }); };
-        list.appendChild(button);
-      }
-      if (!next.drafts.length) list.textContent = 'No unsaved drafts.';
-      $('draft-dialog').showModal();
-    } catch (error) { fileError = error.message || String(error); message(); }
-  };
-  $('draft-close').onclick = () => $('draft-dialog').close();
   viewport.addEventListener('wheel', event => { if (event.ctrlKey || event.metaKey) { event.preventDefault(); zoom(scale * Math.exp(-event.deltaY * .01)); } }, { passive: false });
   viewport.addEventListener('pointerdown', event => {
     if (event.button !== 0) return;
@@ -188,13 +141,10 @@
   document.addEventListener('keydown', event => {
     if (!(event.metaKey || event.ctrlKey)) return;
     if (!['INPUT', 'TEXTAREA'].includes(event.target.tagName) && event.key.toLowerCase() === 'z') { event.preventDefault(); mutate(event.shiftKey ? 'redo' : 'undo'); return; }
-    if (event.key.toLowerCase() === 's') { event.preventDefault(); event.shiftKey ? pathSheet('save') : save(); }
-    if (event.key.toLowerCase() === 'o') { event.preventDefault(); pathSheet('open'); }
   });
   window.addEventListener('beforeunload', event => { if (doc && source.value !== doc.savedText) { localDraft(); } });
   function selected(it) {
-    $('style').hidden = !it; $('delete').hidden = !it;
-    $('selected-name').textContent = it ? (it.type === 'text' ? 'Text' : it.type[0].toUpperCase() + it.type.slice(1)) : 'Choose a tool, or click an object to select it.';
+    $('selection-tools').hidden = !it;
     $('edit-label').hidden = it?.type !== 'text';
   }
   function editText(target) {
@@ -244,7 +194,7 @@
     }
   };
   $('objects').onclick = () => {
-    $('file-menu').open = false; const list = $('object-list'); list.replaceChildren();
+    const list = $('object-list'); list.replaceChildren();
     for (const item of canvas.items) {
       const button = document.createElement('button'); button.textContent = item.type + (item.text ? ': ' + item.text.slice(0,80) : item.attributes.id ? ': ' + item.attributes.id : '');
       button.onclick = () => { canvas.select(item.key); $('objects-dialog').close(); $('overlay').focus(); }; list.appendChild(button);
