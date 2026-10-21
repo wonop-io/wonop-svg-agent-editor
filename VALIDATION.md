@@ -1,0 +1,12 @@
+# WON-887 validation
+
+- `package_test`: nine document/file tests plus manifest/API type check pass. Covers Unicode roundtrip, atomic save, Save as non-overwrite (including same path and destination creation races), disk conflict, failed write cleanup, invalid/oversized input, directory destination, stale edits, concurrent edit/open/save, separate windows, discard and restart/closed-draft recovery.
+- Actual linked Wonop runtime: a temporary, agent-created test window passed 14 integration assertions through the real `wm.call` bridge and approved file commands. It opened a disposable copy of the architecture sample, rendered it, changed a label, retained invalid source and the last valid image, located parser errors, guarded unsaved source, saved/reopened exact edited bytes, cleared dirty state, zoomed/scrolled and toggled the source pane. Script/event/foreign-markup fixtures did not execute in the image preview; DTD/root/namespace failures were reported.
+- Final `tests/preview-check.js` ran inside Wonop's WebKit and passed all 11 assertions, including the namespace-warning regression, local fragments, embedded resources, external images/styles, Unicode, viewBox sizing and size/XML limits.
+- Original sample SHA-256 before/after: `dea6ca4954fb9ff9e4c7a18b3f71b83501bcaf216f7c21dfef00439a78718e7c`. Only files under `/private/tmp/svg-editor-check` were written by integration checks.
+- Native desktop screenshot `.impeccable/review/desktop.png` reviewed after theme fixes: readable source, strong Save contrast, fitted architecture diagram, unsaved-recovery notice. Independent review disposition: ship for that desktop capture and code review. Other viewport/theme combinations were not visually reviewed. Injected Wonop tokens support both themes.
+- Mechanical UI detector ran in degraded regex mode (parser modules unavailable). Its hidden-image-without-src and prescribed Wonop type-size warnings are intentional. JavaScript syntax checks pass.
+- Local HTTP browser harness is available in `tests/browser-check.ts`, but the sandbox blocked port binding here; the actual native checks above were used instead. Temporary native test hooks have been removed.
+- Package permissions were approved; reload stages pass with no stripped permissions. No push or publication.
+
+The save conflict check has a documented check/rename race. This is a small local editor, not a filesystem transaction service. Files are limited to 200 KB UTF-8; external preview resources are intentionally unavailable.

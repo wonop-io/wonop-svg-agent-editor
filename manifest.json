@@ -2,36 +2,91 @@
   "id": "svg-editor",
   "apiVersion": 1,
   "name": "SVG Editor",
-  "version": "0.1.0",
-  "description": "Implement WON-887 https://linear.app/wonop/issue/WON-887/svg-editor-native-viewing-and-source-editing-inside-wonop. Briefly research sensible existing foundations for a simple native Wonop SVG editor, choose pragmatic lightweight approach, then implement without another planning approval. Safe SVG viewing, SVG source editing with live preview, opening/saving SVG files, useful for architecture diagrams. Keep uncomplicated; not full vector illustration suite. Follow package development conventions and test. May read/copy /private/tmp/wonopstudio-pagesprinter-migration/memory-architecture.svg as test input without modifying original. Do not disturb existing agents. Excalidraw research separate. No publishing or pushing.",
+  "version": "0.2.0",
+  "description": "View local SVG diagrams and edit their source with a safe live preview, zoom, pan and recoverable drafts.",
   "icon": "icon.svg",
   "entry": "main.ts",
   "ui": "ui/index.html",
-  "window": { "width": 520, "height": 360 },
+  "window": {
+    "width": 1100,
+    "height": 760
+  },
   "strictArgs": true,
   "commands": {
-    "greet": {
-      "help": "say hello to someone",
-      "args": { "who": "string" },
-      "returns": { "said": "string" }
+    "open": {
+      "help": "Open a local SVG file; refuses to replace unsaved edits",
+      "args": {
+        "path": "string",
+        "windowId": "string?"
+      }
     },
-    "history": {
-      "help": "everything a window has been told to say",
-      "returns": { "lines": "string[]" }
+    "state": {
+      "help": "Current SVG source, saved source, unsaved state and recoverable drafts",
+      "args": {
+        "windowId": "string?"
+      }
+    },
+    "edit": {
+      "help": "Update source and persist a draft; revision must increase",
+      "args": {
+        "id": "string",
+        "text": "string",
+        "revision": "number",
+        "windowId": "string?"
+      }
+    },
+    "save": {
+      "help": "Save source; path chooses a new destination and refuses overwrite",
+      "args": {
+        "path": "string?",
+        "windowId": "string?"
+      }
+    },
+    "newDocument": {
+      "help": "Start a simple architecture diagram; refuses unsaved edits",
+      "args": {
+        "windowId": "string?"
+      }
+    },
+    "discard": {
+      "help": "Explicitly discard edits and return to the last saved source",
+      "args": {
+        "windowId": "string?"
+      }
+    },
+    "recover": {
+      "help": "Recover a saved draft by its id",
+      "args": {
+        "id": "string",
+        "windowId": "string?"
+      }
     }
-  },
-  "inputs": {
-    "say": { "help": "text to show in the window" }
-  },
-  "outputs": {
-    "said": { "help": "everything this app has been told to say" }
   },
   "palette": [
     {
-      "title": "Greet someone (svg-editor)",
-      "snippet": "await wm.apps[\"svg-editor\"].greet({ who: {who} })",
-      "args": [{ "name": "who", "type": "string", "default": "world" }]
+      "title": "Open an SVG diagram",
+      "snippet": "await wm.apps[\"svg-editor\"].open({ path: {file} })",
+      "args": [
+        {
+          "name": "file",
+          "type": "path"
+        }
+      ]
     }
   ],
-  "permissions": {}
+  "permissions": {
+    "exec": [
+      "head -c * * $",
+      "mktemp * $",
+      "tee * $",
+      "mv -f * * $",
+      "mv -n * * $",
+      "rm -f * $"
+    ]
+  },
+  "tabs": {
+    "max": 8,
+    "newTab": "blank",
+    "label": "SVG"
+  }
 }

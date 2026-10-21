@@ -1,51 +1,109 @@
 <!doctype html>
-<meta charset="utf-8" />
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SVG Editor</title>
 <style>
-  /* The workbench injects the base look — type, controls, colours, scrollbars —
-     before this runs, so a package only writes what is specific to itself.
-     Delete this block entirely and the app still looks like it belongs. */
-  main { display: flex; flex-direction: column; height: 100vh; box-sizing: border-box; }
-  ul {
-    flex: 1; margin: 0; padding: 8px 12px; list-style: none;
-    overflow-y: auto; display: flex; flex-direction: column; gap: 2px;
+  :root { color-scheme: light dark; font: 13px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: var(--wm-text, #242428); background: var(--wm-content, #fafafa); }
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  button, input, select { font: inherit; color: inherit; }
+  button { cursor: pointer; min-height: 32px; padding: 5px 10px; background: transparent; border: 0; border-radius: 6px; white-space: nowrap; }
+  button:hover { background: var(--wm-fill-strong, #8882); }
+  button:disabled { opacity: .45; cursor: default; }
+  button.primary { background: var(--wm-primary, #242428); color: var(--wm-primary-text, #fafafa); }
+  :focus-visible { outline: 2px solid var(--wm-text, #555); outline-offset: -2px; }
+  input { background: var(--wm-content, #fff); border: 1px solid var(--wm-hairline, #8885); border-radius: 6px; padding: 9px; width: 100%; }
+  main { height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+  header { height: 44px; flex: none; display: flex; align-items: center; gap: 12px; padding: 0 108px 0 12px; }
+  h1 { font-size: 15px; font-weight: 600; margin: 0; white-space: nowrap; }
+  #filename { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--wm-text-dim, #73737b); }
+  nav { display: flex; flex: none; align-items: center; gap: 2px; padding: 4px 8px; flex-wrap: wrap; background: var(--wm-fill, #8881); }
+  nav .space { flex: 1; }
+  #workspace { min-height: 0; flex: 1; display: grid; grid-template-columns: minmax(240px, 39%) minmax(0, 1fr); }
+  #workspace.preview-only { grid-template-columns: minmax(0, 1fr); }
+  #workspace.preview-only #source-pane { display: none; }
+  section { min-width: 0; min-height: 0; }
+  #source-pane { display: flex; flex-direction: column; border-right: 1px solid var(--wm-hairline, #8883); }
+  .pane-heading { display: flex; align-items: center; min-height: 36px; flex: none; padding: 0 12px; gap: 8px; }
+  .pane-heading label { font-weight: 600; }
+  #position { margin-left: auto; font-variant-numeric: tabular-nums; color: var(--wm-text-dim, #73737b); }
+  textarea { flex: 1; width: 100%; min-height: 0; resize: none; border: 0; border-radius: 0; outline: none; padding: 8px 12px 16px; font: 13px/1.65 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; tab-size: 2; white-space: pre; color: inherit; caret-color: currentColor; background: var(--wm-content, #fafafa); }
+  textarea:focus-visible { outline: 1px solid var(--wm-hairline, #8886); }
+  ::selection { background: var(--wm-fill-strong, #8885); }
+  #preview-pane { display: flex; flex-direction: column; }
+  #preview-tools { display: flex; align-items: center; gap: 2px; min-height: 36px; padding: 0 8px; flex-wrap: wrap; }
+  #preview-tools label { margin-left: auto; color: var(--wm-text-dim, #73737b); }
+  select { border: 0; background: transparent; padding: 5px; }
+  #zoom-value { min-width: 48px; text-align: center; font-variant-numeric: tabular-nums; }
+  #viewport { flex: 1; min-height: 0; overflow: auto; background: var(--wm-fill, #8881); cursor: grab; touch-action: pan-x pan-y; }
+  #viewport.panning { cursor: grabbing; user-select: none; }
+  #canvas { display: flex; align-items: center; justify-content: center; width: max-content; height: max-content; min-width: 100%; min-height: 100%; padding: 24px; }
+  #image { display: block; flex: none; max-width: none; background: white; user-select: none; pointer-events: none; }
+  #image.paper-dark { background: #18181b; }
+  #image.paper-none { background: transparent; }
+  #preview-empty { padding: 20px; color: var(--wm-text-dim, #73737b); }
+  wm-notice { flex: none; }
+  [hidden] { display: none !important; }
+  dialog { width: min(500px, calc(100vw - 24px)); padding: 24px; color: var(--wm-text, #242428); background: var(--wm-surface, var(--wm-content, #fafafa)); border: 1px solid var(--wm-hairline, #8884); border-radius: 12px; }
+  dialog::backdrop { background: #0005; }
+  dialog h2 { font-size: 20px; margin: 0 0 12px; }
+  dialog p { line-height: 1.6; margin: 0 0 16px; }
+  dialog label { display: block; margin: 12px 0 6px; }
+  .actions { display: flex; gap: 6px; justify-content: flex-end; margin-top: 16px; }
+  #draft-list { display: flex; flex-direction: column; max-height: 50vh; overflow: auto; gap: 4px; }
+  #draft-list button { text-align: left; white-space: normal; overflow-wrap: anywhere; }
+  @media (max-width: 650px) {
+    #workspace { grid-template-columns: minmax(0, 1fr); grid-template-rows: 42% minmax(0, 1fr); }
+    #source-pane { border-right: 0; border-bottom: 1px solid var(--wm-hairline, #8883); }
+    #workspace.preview-only { grid-template-rows: minmax(0, 1fr); }
+    #filename { font-size: 13px; }
+    #preview-tools { padding: 0 4px; }
   }
-  li { padding: 4px 8px; border-radius: 6px; animation: in 160ms ease-out; }
-  li:nth-child(odd) { background: color-mix(in srgb, var(--wm-text) 4%, transparent); }
-  @keyframes in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
-  form {
-    display: flex; gap: 6px; padding: 8px 10px;
-    background: var(--wm-chrome);
-    box-shadow: inset 0 0.5px 0 var(--wm-hairline);
-  }
-  input { flex: 1; }
 </style>
+</head>
+<body>
 <main>
-  <ul id="lines"></ul>
-  <form id="form">
-    <input id="text" placeholder="say something…" autofocus />
-    <button>Send</button>
-  </form>
+  <header data-wm-drag><h1>SVG Editor</h1><span id="filename">Untitled.svg</span></header>
+  <nav aria-label="Document">
+    <button id="open" title="Open SVG (⌘O)">Open…</button>
+    <button id="new">New</button>
+    <button id="drafts">Drafts…</button>
+    <span class="space"></span>
+    <button id="source-toggle" aria-pressed="true">Source</button>
+    <button id="discard">Discard edits…</button>
+    <button id="save-as">Save as…</button>
+    <button id="save" class="primary" title="Save SVG (⌘S)">Save</button>
+  </nav>
+  <div id="workspace">
+    <section id="source-pane" aria-label="SVG source editor">
+      <div class="pane-heading"><label for="source">SVG source</label><span id="position">Line 1, col 1</span></div>
+      <textarea id="source" aria-label="SVG source" spellcheck="false" autocapitalize="off" autocomplete="off" wrap="off" maxlength="200000"></textarea>
+    </section>
+    <section id="preview-pane" aria-label="Live preview">
+      <div id="preview-tools" role="toolbar" aria-label="Preview controls">
+        <button id="fit">Fit</button><button id="actual">100%</button>
+        <button id="zoom-out" aria-label="Zoom out">−</button><span id="zoom-value">100%</span><button id="zoom-in" aria-label="Zoom in">+</button>
+        <label for="paper">Paper</label><select id="paper" aria-label="Preview background"><option value="light">Light</option><option value="dark">Dark</option><option value="none">None</option></select>
+      </div>
+      <div id="viewport" tabindex="0" aria-label="SVG preview; drag to pan, control-scroll to zoom">
+        <div id="canvas"><img id="image" alt="Rendered SVG diagram" draggable="false" hidden><p id="preview-empty">Open an SVG or edit the source to preview a diagram.</p></div>
+      </div>
+    </section>
+  </div>
+  <wm-notice id="notice" tone="amber" hidden role="status"><span id="notice-text"></span><button id="locate-error" hidden>Go to error</button></wm-notice>
 </main>
-<script>
-  // `wm` is injected: call/send/post/onMessage, addressed to this window.
-  const lines = document.getElementById("lines");
-  const add = (text) => {
-    const li = document.createElement("li");
-    li.textContent = text;
-    lines.appendChild(li);
-    lines.scrollTop = lines.scrollHeight;
-  };
-
-  wm.onMessage((msg) => {
-    if (msg.type === "hello") (msg.lines || []).forEach(add);
-    if (msg.type === "said") add(msg.text);
-  });
-
-  document.getElementById("form").addEventListener("submit", (e) => {
-    e.preventDefault();
-    const input = document.getElementById("text");
-    if (!input.value) return;
-    wm.send("say", input.value);
-    input.value = "";
-  });
-</script>
+<dialog id="path-dialog">
+  <form id="path-form">
+    <h2 id="path-title">Open SVG</h2><p id="path-help">Enter an absolute path or a path relative to this workspace.</p>
+    <label for="path">SVG file</label><input id="path" required placeholder="diagrams/architecture.svg" autocomplete="off">
+    <div class="actions"><button type="button" id="path-cancel">Cancel</button><button class="primary" id="path-submit">Open</button></div>
+  </form>
+</dialog>
+<dialog id="discard-dialog"><h2>Discard these edits?</h2><p>This returns the source to its last saved version and removes these edits from draft recovery.</p><div class="actions"><button id="discard-cancel">Keep editing</button><button id="discard-confirm" class="primary">Discard edits</button></div></dialog>
+<dialog id="draft-dialog"><h2>Recover a draft</h2><p>Unsaved source is kept when a window closes or Wonop restarts.</p><div id="draft-list"></div><div class="actions"><button id="draft-close">Done</button></div></dialog>
+<script src="preview.js"></script>
+<script src="editor.js"></script>
+</body>
+</html>
