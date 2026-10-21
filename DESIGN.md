@@ -67,7 +67,7 @@ components:
 
 **Creative North Star: "The Native Workbench"**
 
-A small canvas-first diagram editor inside Wonop. Its injected package styles and theme tokens are the visual authority. The drawing fills the window, with six essential tools and contextual object actions. Source is secondary, available under File. There is no independent website identity.
+A small canvas-first diagram editor inside Wonop. Its injected package styles and theme tokens are the visual authority. The drawing fills the window, with six essential tools and contextual object actions. Source is secondary, available through a code icon. There is no independent website identity.
 
 **Key Characteristics:**
 
@@ -77,7 +77,7 @@ A small canvas-first diagram editor inside Wonop. Its injected package styles an
 
 ## Colors
 
-Primary colors identify Save and a dialog's confirming action. Neutral content is the source and page background; surface belongs to dialogs; fill separates the toolbar and canvas viewport. Fill-strong supplies quiet button hover, the selected drawing tool and text selection. Text-dim carries filenames, position and secondary labels; hairline divides panes and outlines fields.
+Primary colors identify a dialog's confirming action. Neutral content is the source and page background; surface belongs to dialogs; fill separates the toolbar and canvas viewport. Fill-strong supplies quiet button hover, the selected drawing tool and text selection. Text-dim carries position and secondary labels; hairline divides panes and outlines fields.
 
 **The Host Theme Rule.** Consume Wonop's injected tokens in both themes. CSS fallbacks support an unhosted page; they are not a separate palette. Do not substitute unrecognized surface-level tokens for `--wm-content`, `--wm-surface` or `--wm-fill`.
 
@@ -85,34 +85,34 @@ Light, dark and transparent paper affect only the diagram image. The SVG retains
 
 ## Typography
 
-System body type is the default for labels, controls and status. The app title uses the title role; dialogs use the dialog-title role. Source uses the source role with two-space tabs, preserved whitespace and horizontal scrolling. Position and zoom values use tabular numerals. There is no display typography or syntax-color theme.
+System body type is the default for labels, controls and status. The host draws document titles; dialogs use the dialog-title role. Source uses the source role with two-space tabs, preserved whitespace and horizontal scrolling. Position and zoom values use tabular numerals. There is no display typography or syntax-color theme.
 
 ## Layout
 
-The window is a fixed-height flex column. A draggable header (44px) reserves space at the right for host window controls; the filename truncates. A compact wrapping toolbar contains Open, File and the primary Save.
+The window is a fixed-height, headerless stage. Wonop draws window chrome and conventional document tabs; there is no duplicate in-app title, filename, file toolbar or File menu. File IO and draft recovery belong to the agent command interface.
 
-The canvas fills the workspace by default. A vertical sidebar (68px) holds Select, Box, Ellipse, Line, Text and Hand, with Undo and Redo at the bottom. A fixed-height 36px instruction/action row stays above the drawing; selection replaces its quiet hint with contextual actions without moving or refitting the canvas; Fit, scale, zoom and Paper remain below it. The scrollable viewport centers the diagram with the canvas spacing token.
+The canvas fills the workspace by default. A vertical 44px sidebar holds six 32px icon buttons for Select, Box, Ellipse, Line, Text and Hand, with Undo and Redo below. Icons are 16px, use currentColor and have accessible names and shortcut tooltips. Context actions float over the upper-left canvas only while selected; their appearance never changes viewport bounds or fit scale. Fit, zoom, percentage, the object-list/code icons and a quiet background selector sit at the bottom. The viewport centers the diagram with the canvas spacing token.
 
-File → SVG source reveals a secondary pane (39%, minimum 240px), leaving the larger share for drawing. At widths up to 650px, an open source pane occupies the upper 42%, with canvas below and a horizontal divider. With source hidden, the canvas retains the full workspace at either size. Toolbars wrap rather than disappear; the sidebar remains vertical.
+The code icon reveals a secondary source pane (39%, minimum 240px). At widths up to 650px, source occupies the upper 42% with canvas below. With source hidden, the canvas uses the full workspace. Toolbars wrap rather than disappear; the sidebar remains vertical.
 
-Dialogs are capped at 500px and leave 12px on either side of narrow windows. Draft and object lists scroll at a maximum height of 50vh. Notices occupy their own bottom row and reduce the workspace height.
+Dialogs are capped at 500px and leave 12px on either side of narrow windows. Object lists scroll at a maximum height of 50vh. Notices occupy their own bottom row and reduce the workspace height.
 
 ## Elevation & Depth
 
-Tonal surfaces, fine dividers and the native dialog backdrop establish separation. The File menu alone uses a floating-menu shadow (`0 6px 24px #0003`); the editor canvas adds a small white halo to selection feedback. Wonop owns surrounding window chrome and native tab treatment.
+Tonal surfaces, fine dividers and the native dialog backdrop establish separation. Contextual selection controls use a quiet shadow (`0 1px 4px #0002`); the editor canvas adds a small white halo to selection feedback. Wonop owns surrounding window chrome and native tab treatment.
 
 ## Shapes
 
-Controls use the control radius, the File menu the menu radius, and dialogs the larger dialog radius. The source textarea and adjoining workspace panes have square edges. Diagram geometry belongs to the document rather than the application UI.
+Controls use the control radius and dialogs the larger dialog radius. The source textarea and adjoining workspace panes have square edges. Diagram geometry belongs to the document rather than the application UI.
 
 ## Components
 
-- **Document toolbar and File menu:** Open and Save stay visible. File contains New diagram, Save as, Recover draft, SVG source, Objects and Discard edits. Save is the one primary window action. Disabled controls lower opacity; source visibility is exposed through `aria-pressed`.
-- **Drawing sidebar:** six text-labeled tool buttons; selected tools use fill-strong and semibold type. Select uses a default cursor, drawing tools a crosshair, Hand a grab cursor. Keyboard shortcuts are V/R/E/L/T/H; Undo/Redo operate on the same history as structured agent edits.
-- **Canvas and selection:** SVG renders in an isolated `<img>` data URL. An editor-owned `<canvas>` overlays numeric geometry, dashed selection/gesture outlines and resize handles, never document markup. Click to select, drag to move, resize supported primitives with handles; arrows move and brackets cycle objects. Hand pans and modified-wheel zooms. File → Objects provides a keyboard-accessible list.
-- **Contextual object actions (fixed row):** the selected type appears beside Style and Delete. Text also exposes Edit text; double-clicking a text object opens the same edit dialog. Label and style changes use native modal forms with primary Apply; style fields are Fill, Stroke, Stroke width and, for text, Text size. Human and revision-checked structured commands update one document and shared undo history.
+- **Native document tabs:** Wonop owns switching, filename, unsaved mark, close protection and restart restore. Agents may open a file in a new tab without replacing the current document. There is no in-app file UI.
+- **Drawing sidebar:** six icon buttons; selected tools use fill-strong. Select uses a default cursor, drawing tools a crosshair, Hand a grab cursor. V/R/E/L/T/H and shared Undo/Redo remain available.
+- **Canvas and selection:** document SVG renders in an isolated `<img>` data URL. An editor-owned `<canvas>` overlays numeric geometry and resize handles, never document markup. Trusted app icons are the only inline SVG. Click to select, drag to move, resize primitives with handles; arrows move and brackets cycle. The bottom list icon provides keyboard-accessible objects.
+- **Contextual object actions:** floating Style/Delete icons; text also exposes Edit text, available by double-click. Native modal forms provide Label or Fill/Stroke/Stroke width/Text size and Apply. Human actions and revision-checked agent commands update one document and history.
 - **Secondary source editor:** a plain labeled textarea with line/column position, preserved whitespace, horizontal scrolling and visible focus. Invalid XML stays editable; the last valid image remains when available, with drawing feedback disabled. Conflicting source is retained for recovery rather than silently replacing newer shared edits.
-- **Document state and notices:** native tabs receive filename and dirty flag; the header also appends “• Unsaved”. Drafts survive closure/restart. Bottom `wm-notice` explains recovery, unavailable resources, validation or file errors; Go to error reveals and focuses source when a location is known.
+- **Document state and notices:** native tabs receive filename and dirty flag. Drafts survive closure/restart. Bottom `wm-notice` explains recovery, unavailable resources, validation or file errors; Go to error reveals and focuses source when a location is known.
 
 ## Do's and Don'ts
 

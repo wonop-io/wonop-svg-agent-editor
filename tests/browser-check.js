@@ -23,8 +23,7 @@
     source.value = valid; source.dispatchEvent(new w.Event('input', {bubbles:true})); await pause(300);
     const state = await w.wm.call('state'); check(state.dirty, 'Native dirty flag and persistent draft are set');
     try { await w.wm.call('open', { path:'architecture.svg' }); check(false,'guard'); } catch (error) { check(error.message.includes('Save or discard'), 'Open refuses to discard unsaved source'); }
-    $('save-as').click(); $('path').value = 'saved.svg'; $('path-form').dispatchEvent(new w.Event('submit', {bubbles:true,cancelable:true}));
-    await wait(() => $('filename').textContent === 'saved.svg', 'Save as did not complete');
+    await w.wm.call('save', {path:'saved.svg'});
     await w.wm.call('open', {path:'saved.svg'}); check(source.value === valid, 'Real filesystem save and reopen preserve edited source');
     const assertion = await (await fetch('/assertions')).json(); check(assertion.originalUnchanged && assertion.files === valid && !assertion.labels.check.dirty, 'Original sample unchanged; saved bytes match; dirty mark cleared');
     const oldWidth = image.style.width; $('zoom-in').click(); check(image.style.width !== oldWidth, 'Zoom changes preview size'); $('actual').click();
@@ -37,7 +36,7 @@
     w.__svgScriptRan = false;
     const malicious = '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="100" onload="parent.__svgScriptRan=true"><script>parent.__svgScriptRan=true</script><foreignObject width="400" height="100"><div xmlns="http://www.w3.org/1999/xhtml"><img src="x" onerror="parent.__svgScriptRan=true"/></div></foreignObject><text y="50">Safe image</text></svg>';
     const rendered = w.SvgPreview.validate(malicious); const probe = d.createElement('img'); probe.src = rendered.url; d.body.append(probe); await pause(400);
-    check(w.__svgScriptRan === false && !d.querySelector('main svg'), 'Scripts, SVG event handlers and foreign markup never execute in the app'); probe.remove();
+    check(w.__svgScriptRan === false && !d.querySelector('main foreignObject, main svg script, main svg[onload]'), 'Scripts, SVG event handlers and foreign markup never execute in the app'); probe.remove();
     check(!!w.SvgPreview.validate('<!DOCTYPE svg [<!ENTITY x SYSTEM "file:///etc/passwd">]><svg xmlns="http://www.w3.org/2000/svg">&x;</svg>').error, 'DTD/entity input refused before parsing');
     check(!!w.SvgPreview.validate('<html/>').error && !!w.SvgPreview.validate('<svg/>').error, 'Non-SVG roots and missing namespace rejected');
     frame.style.width = '520px'; frame.style.height='600px'; await pause(100); check(d.documentElement.scrollWidth <= 520, 'Small Wonop window has no horizontal UI overflow');

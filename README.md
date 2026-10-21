@@ -1,16 +1,25 @@
 # SVG Editor
 
-A small canvas-first Wonop SVG editor for architecture diagrams. Select and manipulate objects directly; draw boxes, ellipses, lines and text with six essential tools. SVG source is available under File as a secondary tool. Humans and agents operate on the same SVG document and undo history.
+A small canvas-first Wonop SVG editor for architecture diagrams. Select and manipulate objects directly; draw boxes, ellipses, lines and text with six essential tools. SVG source is available through the code icon as a secondary tool. Humans and agents operate on the same SVG document and undo history.
 
 ## Use
 
-Open a local `.svg` with Open. Choose Box, Ellipse or Line and drag on the page. Choose Text and click to place a label. Select an object to drag it, resize a box/ellipse/circle/line with its corner handles, edit a text label, change its style or delete it. Double-click text to edit it. Use Hand to pan, Fit or 100% for scale, and control-scroll/pinch to zoom. New diagrams start with a blank page.
+Use the six icon tools in the sidebar: select, box, ellipse, line, text and hand. Every icon has an accessible name and a tooltip with its shortcut. Choose a shape and drag on the page, or choose text and click to place a label. Select an object to drag it, resize a box/ellipse/circle/line with its corner handles, edit a text label, change its style or delete it. Double-click text to edit it. Use Hand to pan, Fit or the percentage control for scale, and control-scroll/pinch to zoom. New diagrams start with a blank page.
 
-Keyboard: V Select, R Box, E Ellipse, L Line, T Text, H Hand; arrow keys move selected objects (Shift for ten units), brackets cycle objects, Delete removes, Escape clears selection. Command/Ctrl Z and Shift Command/Ctrl Z undo/redo shared edits. File → Objects provides a keyboard-accessible object list. File also contains Save as, source, draft recovery and explicit discard.
+Keyboard: V Select, R Box, E Ellipse, L Line, T Text, H Hand; arrow keys move selected objects (Shift for ten units), brackets cycle objects, Delete removes, Escape clears selection. Command/Ctrl Z and Shift Command/Ctrl Z undo/redo shared edits. The list icon opens a keyboard-accessible object list. The code icon toggles source. The host supplies native document tabs, filenames and unsaved marks; there is no duplicate title bar or file toolbar.
 
-Save writes SVG, with source changes from either interface. Save as refuses existing destinations. Native tabs mark unsaved work and protect closure; drafts survive reload/restart. Invalid XML remains editable in the optional source pane with the last valid image. Conflicting source edits are retained as recovery drafts rather than replacing a newer agent/human edit.
+Agents open and save files, recover drafts and perform explicit discard through commands. `save({})` writes the current path; `save({path})` chooses a new destination and refuses existing files. Native tabs mark unsaved work and protect closure; drafts survive reload/restart. Invalid XML remains editable in the optional source pane with the last valid image. Conflicting source edits are retained as recovery drafts rather than replacing a newer agent/human edit.
 
 ## Structured agent interface
+
+`open({path,newTab:true,windowId?})` reads an SVG into a new native tab in the target window, preserving all existing documents and drafts. `newTab({path?,windowId?})` opens a blank or file-backed tab. Both return document state plus `windowId` and `hostId`. Use `tabs({})` to list stable tab IDs, names, hosts and dirty marks. Pass a tab's stable ID as `windowId` to document commands; omit it for the tab resolved by the host. Ordinary `open({path})` replaces only a clean current document. The native tab strip provides conventional switching, adding and guarded closing; no custom tab strip is drawn.
+
+```ts
+const tab = await wm.apps['svg-editor'].open({path: 'architecture.svg', newTab: true});
+const current = await wm.apps['svg-editor'].state({windowId: tab.windowId});
+// After editing, choose a fresh filename; the existing file is never overwritten here.
+await wm.apps['svg-editor'].save({windowId: tab.windowId, path: 'architecture-revised.svg'});
+```
 
 Read `wm.apps["svg-editor"].objects({ windowId? })` for `{ documentId, revision, viewBox, objects, error }`. Objects include `key`, `type`, raw SVG `attributes`, text, presentation and ancestor transforms. Keys without unique SVG IDs are revision-scoped; read again after edits. Each mutation requires the exact `documentId` and `expectedRevision` returned by objects/state.
 
