@@ -1,0 +1,37 @@
+{
+  "id": "svg-editor",
+  "apiVersion": 1,
+  "name": "SVG Editor",
+  "version": "0.1.0",
+  "description": "Implement WON-887 https://linear.app/wonop/issue/WON-887/svg-editor-native-viewing-and-source-editing-inside-wonop. Briefly research sensible existing foundations for a simple native Wonop SVG editor, choose pragmatic lightweight approach, then implement without another planning approval. Safe SVG viewing, SVG source editing with live preview, opening/saving SVG files, useful for architecture diagrams. Keep uncomplicated; not full vector illustration suite. Follow package development conventions and test. May read/copy /private/tmp/wonopstudio-pagesprinter-migration/memory-architecture.svg as test input without modifying original. Do not disturb existing agents. Excalidraw research separate. No publishing or pushing.",
+  "icon": "icon.svg",
+  "entry": "main.ts",
+  "ui": "ui/index.html",
+  "window": { "width": 520, "height": 360 },
+  "strictArgs": true,
+  "commands": {
+    "greet": {
+      "help": "say hello to someone",
+      "args": { "who": "string" },
+      "returns": { "said": "string" }
+    },
+    "history": {
+      "help": "everything a window has been told to say",
+      "returns": { "lines": "string[]" }
+    }
+  },
+  "inputs": {
+    "say": { "help": "text to show in the window" }
+  },
+  "outputs": {
+    "said": { "help": "everything this app has been told to say" }
+  },
+  "palette": [
+    {
+      "title": "Greet someone (svg-editor)",
+      "snippet": "await wm.apps[\"svg-editor\"].greet({ who: {who} })",
+      "args": [{ "name": "who", "type": "string", "default": "world" }]
+    }
+  ],
+  "permissions": {}
+}
