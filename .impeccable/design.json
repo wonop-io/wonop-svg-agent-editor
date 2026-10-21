@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-21T13:36:15.881289+00:00",
+  "generatedAt": "2026-10-21T14:07:31.493068+00:00",
   "title": "Design System: SVG Editor",
   "extensions": {
     "breakpoints": [
@@ -9,7 +9,13 @@
         "value": "650px"
       }
     ],
-    "shadows": [],
+    "shadows": [
+      {
+        "name": "file-menu",
+        "value": "0 6px 24px #0003",
+        "purpose": "Elevates the File dropdown above the canvas."
+      }
+    ],
     "motion": []
   },
   "components": [
@@ -25,7 +31,7 @@
       "name": "Quiet action",
       "kind": "button",
       "refersTo": "button-quiet",
-      "description": "Compact secondary document and preview control.",
+      "description": "Compact secondary document or canvas-view control.",
       "html": "<button class=\"ds-button\">Open\u2026</button>",
       "css": ".ds-button { font: 13px -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif; color: var(--wm-text, #242428); min-height: 32px; padding: 5px 10px; background: transparent; border: 0; border-radius: 6px; cursor: pointer; } .ds-button:hover { background: var(--wm-fill-strong, #8882); } .ds-button:focus-visible { outline: 2px solid var(--wm-text, #555); outline-offset: -2px; } .ds-button:disabled { opacity: .45; cursor: default; }"
     },
@@ -40,23 +46,45 @@
       "name": "Source textarea",
       "kind": "input",
       "refersTo": "source-field",
-      "description": "Plain monospace source with preserved whitespace and visible focus.",
+      "description": "Secondary SVG source field, hidden by default and available under File.",
       "html": "<textarea class=\"ds-source\" aria-label=\"SVG source\" spellcheck=\"false\" wrap=\"off\">&lt;svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 500\"&gt;\n&lt;/svg&gt;</textarea>",
       "css": ".ds-source { width: 100%; min-height: 140px; resize: none; border: 0; border-radius: 0; padding: 8px 12px 16px; font: 13px/1.65 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; tab-size: 2; white-space: pre; color: var(--wm-text, #242428); caret-color: currentColor; background: var(--wm-content, #fafafa); } .ds-source:focus-visible { outline: 1px solid var(--wm-hairline, #8886); } .ds-source::selection { background: var(--wm-fill-strong, #8885); }"
     },
     {
-      "name": "Preview viewport",
+      "name": "Canvas viewport",
       "kind": "custom",
-      "description": "Neutral scrolling viewport with an image-context preview and light paper.",
+      "description": "Image-context diagram rendering. The actual editor places its own numeric-geometry canvas overlay above the image for selection and gestures; document SVG never enters the application DOM.",
       "html": "<div class=\"ds-viewport\" tabindex=\"0\" aria-label=\"SVG preview\"><div class=\"ds-canvas\"><img class=\"ds-paper\" width=\"180\" height=\"100\" alt=\"Rendered SVG diagram\" src=\"data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22180%22%20height%3D%22100%22%20viewBox%3D%220%200%20180%20100%22%3E%3Cpath%20d%3D%22M30%2050h120%22%20stroke%3D%22%23242428%22%2F%3E%3Crect%20x%3D%2220%22%20y%3D%2235%22%20width%3D%2230%22%20height%3D%2230%22%20fill%3D%22white%22%20stroke%3D%22%23242428%22%2F%3E%3Crect%20x%3D%22130%22%20y%3D%2235%22%20width%3D%2230%22%20height%3D%2230%22%20fill%3D%22white%22%20stroke%3D%22%23242428%22%2F%3E%3C%2Fsvg%3E\"></div></div>",
       "css": ".ds-viewport { overflow: auto; background: var(--wm-fill, #8881); cursor: grab; } .ds-viewport:active { cursor: grabbing; } .ds-viewport:focus-visible { outline: 2px solid var(--wm-text, #555); outline-offset: -2px; } .ds-canvas { display: flex; align-items: center; justify-content: center; padding: 24px; } .ds-paper { display: block; flex: none; color: #242428; background: white; user-select: none; pointer-events: none; }"
+    },
+    {
+      "name": "Drawing tools",
+      "kind": "nav",
+      "refersTo": "tool-selected",
+      "description": "Six essential tools in a vertical sidebar; current tool is semibold with a tonal fill. Undo and Redo sit below.",
+      "html": "<aside class=\"ds-tools\" aria-label=\"Drawing tools\"><button class=\"ds-button\" aria-pressed=\"true\">Select</button><button class=\"ds-button\" aria-pressed=\"false\">Box</button><button class=\"ds-button\" aria-pressed=\"false\">Ellipse</button><button class=\"ds-button\" aria-pressed=\"false\">Line</button><button class=\"ds-button\" aria-pressed=\"false\">Text</button><button class=\"ds-button\" aria-pressed=\"false\">Hand</button><span class=\"ds-tool-space\"></span><button class=\"ds-button\">Undo</button><button class=\"ds-button\">Redo</button></aside>",
+      "css": ".ds-button { font: 13px -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif; color: var(--wm-text, #242428); min-height: 32px; padding: 5px 10px; background: transparent; border: 0; border-radius: 6px; cursor: pointer; } .ds-button:hover { background: var(--wm-fill-strong, #8882); } .ds-button:focus-visible { outline: 2px solid var(--wm-text, #555); outline-offset: -2px; } .ds-button:disabled { opacity: .45; cursor: default; } .ds-tools { display: flex; flex-direction: column; width: 68px; height: 350px; padding: 6px 4px; gap: 4px; background: var(--wm-content, #fafafa); } .ds-tools .ds-button { padding: 6px 4px; } .ds-tools .ds-button[aria-pressed=\"true\"] { background: var(--wm-fill-strong, #8882); font-weight: 600; } .ds-tool-space { flex: 1; }"
+    },
+    {
+      "name": "Selection actions",
+      "kind": "custom",
+      "description": "Contextual row shown only while an object is selected; Edit text appears for text objects.",
+      "html": "<div class=\"ds-selection\"><span class=\"ds-selected-name\">Text</span><button class=\"ds-button\">Edit text\u2026</button><button class=\"ds-button\">Style\u2026</button><button class=\"ds-button\">Delete</button></div>",
+      "css": ".ds-button { font: 13px -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif; color: var(--wm-text, #242428); min-height: 32px; padding: 5px 10px; background: transparent; border: 0; border-radius: 6px; cursor: pointer; } .ds-button:hover { background: var(--wm-fill-strong, #8882); } .ds-button:focus-visible { outline: 2px solid var(--wm-text, #555); outline-offset: -2px; } .ds-button:disabled { opacity: .45; cursor: default; } .ds-selection { display: flex; align-items: center; min-height: 36px; padding: 0 8px; gap: 4px; font: 13px -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif; color: var(--wm-text, #242428); } .ds-selected-name { margin-right: auto; color: var(--wm-text-dim, #73737b); }"
+    },
+    {
+      "name": "File menu",
+      "kind": "nav",
+      "description": "Secondary document actions, source access and the keyboard-accessible object list.",
+      "html": "<details class=\"ds-file\"><summary>File</summary><div class=\"ds-file-actions\"><button class=\"ds-button\">New diagram</button><button class=\"ds-button\">Save as\u2026</button><button class=\"ds-button\">Recover draft\u2026</button><button class=\"ds-button\">SVG source</button><button class=\"ds-button\">Objects\u2026</button><button class=\"ds-button\">Discard edits\u2026</button></div></details>",
+      "css": ".ds-button { font: 13px -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif; color: var(--wm-text, #242428); min-height: 32px; padding: 5px 10px; background: transparent; border: 0; border-radius: 6px; cursor: pointer; } .ds-button:hover { background: var(--wm-fill-strong, #8882); } .ds-button:focus-visible { outline: 2px solid var(--wm-text, #555); outline-offset: -2px; } .ds-button:disabled { opacity: .45; cursor: default; } .ds-file { position: relative; font: 13px -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif; color: var(--wm-text, #242428); } .ds-file summary { padding: 6px 10px; cursor: pointer; border-radius: 6px; } .ds-file summary:focus-visible { outline: 2px solid var(--wm-text, #555); outline-offset: -2px; } .ds-file-actions { position: absolute; z-index: 10; top: 36px; left: 0; min-width: 180px; padding: 6px; display: flex; flex-direction: column; background: var(--wm-surface, #fafafa); box-shadow: 0 6px 24px #0003; border-radius: 8px; } .ds-file-actions .ds-button { text-align: left; }"
     }
   ],
   "narrative": {
     "northStar": "The Native Workbench",
-    "overview": "A small editor inside Wonop. Its injected package styles and theme tokens are the visual authority. The document fills the window, with compact controls and live visual feedback. There is no independent website identity.",
+    "overview": "A small canvas-first diagram editor inside Wonop. Its injected package styles and theme tokens are the visual authority. The drawing fills the window, with six essential tools and contextual object actions. Source is secondary, available under File. There is no independent website identity.",
     "keyCharacteristics": [
-      "Edge-to-edge working surfaces.",
+      "Edge-to-edge canvas with a minimal drawing sidebar.",
       "System typography and restrained controls.",
       "Explicit unsaved, recovery and error states."
     ],
@@ -69,7 +97,7 @@
     ],
     "dos": [
       "Do inherit Wonop's light/dark tokens and native tab state.",
-      "Do keep document controls compact, keyboard reachable and visibly focused.",
+      "Do keep canvas tools compact, keyboard reachable and visibly focused; keep source secondary.",
       "Do preserve SVG colors independently of the surrounding theme."
     ],
     "donts": [
