@@ -42,8 +42,8 @@
   #tools button { padding: 6px 4px; }
   #tools button[aria-pressed="true"] { background: var(--wm-fill-strong, #8882); font-weight: 600; }
   .tool-space { flex: 1; }
-  #selection-tools { min-height: 36px; display: flex; align-items: center; padding: 0 8px; gap: 4px; }
-  #selected-name { margin-right: auto; color: var(--wm-text-dim, #73737b); }
+  #selection-tools { height: 36px; flex: none; display: flex; align-items: center; padding: 0 8px; gap: 4px; }
+  #selected-name { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-right: auto; color: var(--wm-text-dim, #73737b); }
   #surface { position: relative; flex: none; }
   #overlay { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
   #file-menu { position: relative; }
@@ -95,7 +95,7 @@
       <textarea id="source" aria-label="SVG source" spellcheck="false" autocapitalize="off" autocomplete="off" wrap="off" maxlength="200000"></textarea>
     </section>
     <section id="preview-pane" aria-label="Diagram canvas">
-      <div id="selection-tools" hidden><span id="selected-name"></span><button id="edit-label" hidden>Edit text…</button><button id="style">Style…</button><button id="delete">Delete</button></div>
+      <div id="selection-tools"><span id="selected-name">Choose a tool, or click an object to select it.</span><button id="edit-label" hidden>Edit text…</button><button id="style" hidden>Style…</button><button id="delete" hidden>Delete</button></div>
       <div id="drawing-area">
         <aside id="tools" aria-label="Drawing tools">
           <button data-tool="select" aria-pressed="true" title="Select and move (V)">Select</button>

@@ -92,13 +92,13 @@
         if(handle>=0){const hs=handles(selected),anchor=hs.length===2?hs[1-handle]:hs[(handle+2)%4];gesture={kind:'resize',item:selected,anchor,handle,start:p,now:p};}
         else {const it=hit(p);select(it?.key);if(it)gesture={kind:'move',item:it,start:p,now:p};}
       }
-      if(gesture){gesture.documentId=data.documentId;gesture.revision=data.revision;if(event.isTrusted)overlay.setPointerCapture(event.pointerId);}draw();
+      if(gesture){gesture.documentId=data.documentId;gesture.revision=data.revision;gesture.clientStart={x:event.clientX,y:event.clientY};if(event.isTrusted)overlay.setPointerCapture(event.pointerId);}draw();
     });
     overlay.addEventListener('pointermove',event=>{if(gesture){gesture.now=coord(event);draw();}});
     overlay.addEventListener('pointerup',async event=>{
       if(!gesture)return;const g=gesture;gesture=null;g.now=coord(event);draw();
       const stamp={documentId:g.documentId,expectedRevision:g.revision};
-      if(Math.hypot(g.start.x-g.now.x,g.start.y-g.now.y)*zoom<2)return;
+      if(Math.hypot(g.clientStart.x-event.clientX,g.clientStart.y-event.clientY)<2)return;
       if(g.kind==='move'){
         const inv=inverse(g.item.parent);if(!inv)return;const a=point(inv,g.start),b=point(inv,g.now);await send('move',{...stamp,key:g.item.key,dx:b.x-a.x,dy:b.y-a.y});
       }else if(g.kind==='draw'){

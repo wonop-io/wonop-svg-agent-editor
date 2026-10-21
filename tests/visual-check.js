@@ -20,6 +20,14 @@ globalThis.runVisualEditorChecks = async function () {
   check(document.querySelectorAll('[data-tool]').length===6,'Six essential tools without illustration panels');
   await drag('rect',[80,80],[240,180]);
   check((await scene()).objects[0].type==='rect','Human draws a box by dragging');
+  document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
+  await pause(60);const beforeSelect=await state(),beforeRect=overlay.getBoundingClientRect(),vb=beforeSelect.scene.viewBox;
+  const selectPoint={clientX:beforeRect.left+(120-vb[0])/vb[2]*beforeRect.width,clientY:beforeRect.top+(120-vb[1])/vb[3]*beforeRect.height};
+  overlay.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,button:0,...selectPoint}));
+  await pause(100);overlay.dispatchEvent(new PointerEvent('pointerup',{bubbles:true,button:0,...selectPoint}));await pause(100);
+  check((await state()).revision===beforeSelect.revision,'A first selection click never moves the object');
+  const afterRect=overlay.getBoundingClientRect();check(Math.abs(beforeRect.left-afterRect.left)<.1&&Math.abs(beforeRect.top-afterRect.top)<.1&&Math.abs(beforeRect.width-afterRect.width)<.1,'Selection actions do not shift or rescale the canvas');
+
   await drag('ellipse',[350,100],[480,200]);
   check((await scene()).objects.some(o=>o.type==='ellipse'),'Human draws an ellipse');
   await drag('line',[200,260],[400,340]);

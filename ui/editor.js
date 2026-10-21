@@ -193,8 +193,8 @@
   });
   window.addEventListener('beforeunload', event => { if (doc && source.value !== doc.savedText) { localDraft(); } });
   function selected(it) {
-    $('selection-tools').hidden = !it;
-    $('selected-name').textContent = it ? (it.type === 'text' ? 'Text' : it.type[0].toUpperCase() + it.type.slice(1)) : '';
+    $('style').hidden = !it; $('delete').hidden = !it;
+    $('selected-name').textContent = it ? (it.type === 'text' ? 'Text' : it.type[0].toUpperCase() + it.type.slice(1)) : 'Choose a tool, or click an object to select it.';
     $('edit-label').hidden = it?.type !== 'text';
   }
   function editText(target) {
