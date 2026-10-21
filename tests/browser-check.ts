@@ -42,6 +42,6 @@ Deno.serve({ hostname: '127.0.0.1', port: 8147 }, async req => {
   if (path === '/checks.js') return new Response(await Deno.readTextFile(new URL('./browser-check.js', import.meta.url)), {headers:{'content-type':'text/javascript'}});
   if (path === '/assertions') return Response.json({ labels, stored: store, originalUnchanged: await Deno.readTextFile(original) === sample, files: await Deno.readTextFile(`${folder}/saved.svg`).catch(()=>null) });
   if (path === '/ui') return new Response((await Deno.readTextFile(new URL('../ui/index.html', import.meta.url))).replace('<script src="preview.js">', bridge + '<script src="preview.js">'), {headers:{'content-type':'text/html'}});
-  if (path === '/editor.js' || path === '/preview.js' || path === '/canvas.js') return new Response(await Deno.readTextFile(new URL('../ui'+path, import.meta.url)), {headers:{'content-type':'text/javascript'}});
+  if (path === '/editor.js' || path === '/preview.js' || path === '/canvas.js' || path === '/source-sync.js') return new Response(await Deno.readTextFile(new URL('../ui'+path, import.meta.url)), {headers:{'content-type':'text/javascript'}});
   return new Response('Not found',{status:404});
 });

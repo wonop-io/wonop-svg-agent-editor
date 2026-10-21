@@ -174,3 +174,43 @@ Deno.test('self-closing roots/text, quoted greater-than and duplicate ids are ha
   h.command('set', { ...stamped(h), key: objects[0].key, property: 'text', value: 'First' });
   eq(h.command('objects').objects.map((o: any) => o.text), ['First','Second']); ok(h.command('state').text.includes('data-note="a &gt; b"'));
 });
+Deno.test('a rejected source write stops later queued snapshots instead of colliding with an agent revision', async () => {
+  await import(`./ui/source-sync.js#${crypto.randomUUID()}`);
+  const sync = (globalThis as any).SvgSourceSync;
+  let shared = 'original', revision = 0, release!: () => void;
+  const gate = new Promise<void>(resolve => { release = resolve; }), calls: number[] = [];
+  const queue = sync.create(async (args: any) => {
+    calls.push(args.expectedRevision); await gate;
+    if (args.expectedRevision !== revision) throw new Error('stale');
+    shared = args.text; revision++; return { text: shared, revision };
+  });
+  const first = queue.enqueue({ expectedRevision: 0, text: 'first human source' });
+  const second = queue.enqueue({ expectedRevision: 1, text: 'second human source' });
+  // An agent commits before the first source request reaches the shared document.
+  shared = 'agent source'; revision = 1; release();
+  await Promise.allSettled([first, second]);
+  eq(calls, [0]); eq(shared, 'agent source'); eq(revision, 1); eq(queue.blocked, true);
+  await Promise.allSettled([queue.enqueue({ expectedRevision: 1, text: 'more local input' })]); eq(calls, [0]);
+  queue.reset(); await queue.enqueue({ expectedRevision: 1, text: 'explicitly reconciled source' });
+  eq(shared, 'explicitly reconciled source'); eq(revision, 2);
+});
+Deno.test('source recovery requires matching ancestry, never just a higher cached revision', async () => {
+  await import(`./ui/source-sync.js#${crypto.randomUUID()}`);
+  const sync = (globalThis as any).SvgSourceSync;
+  eq(sync.canReplay({ text: 'local', baseText: 'old', revision: 100 }, { text: 'new agent source', revision: 1 }), false);
+  eq(sync.canReplay({ text: 'local', baseText: 'same base', revision: 2 }, { text: 'same base', revision: 1 }), true);
+  eq(sync.canReplay({ text: 'legacy local', revision: 100 }, { text: 'shared', revision: 1 }), false);
+});
+Deno.test('paused source input can keep the latest conflicting text without mutating the shared document', async () => {
+  const h = await harness(); h.open(); const before = h.command('state');
+  h.command('add', { ...stamped(h), type: 'text', x: 20, y: 30, text: 'Agent' });
+  const shared = h.command('state').text;
+  h.spec.onMessage({ windowId: 'w1', payload: { type: '__source_conflict', documentId: before.id, text: 'latest local input, including queued characters' } });
+  eq(h.command('state').text, shared);
+  eq(h.stored.documents[`conflict-${before.id}-w1`].text, 'latest local input, including queued characters');
+  h.command('discard'); h.command('newDocument');
+  const replacement = h.command('state');
+  h.spec.onMessage({ windowId: 'w1', payload: { type: '__source_conflict', documentId: before.id, text: 'last queued input from replaced document' } });
+  eq(h.command('state').id, replacement.id); eq(h.command('state').text, replacement.text);
+  eq(h.stored.documents[`conflict-${before.id}-w1`].text, 'last queued input from replaced document');
+});

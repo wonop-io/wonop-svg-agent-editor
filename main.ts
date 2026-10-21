@@ -439,6 +439,11 @@ app.define({
   },
   onMessage({ payload, windowId }) {
     if (!windowId || !svgStore.windows[windowId]) return;
+    if (payload?.type === '__source_conflict' && typeof payload.documentId === 'string') {
+      const doc = svgStore.documents[payload.documentId], conflictId = `conflict-${payload.documentId}-${windowId}`;
+      svgStore.documents[conflictId] = { id: conflictId, path: doc?.path ?? '', text: checkedText(payload.text, 800_000), savedText: doc?.savedText ?? '', revision: 0 };
+      persist();
+    }
     if (payload?.type === '__ui_ready') publish(windowId);
   },
   onClose({ windowId }) {

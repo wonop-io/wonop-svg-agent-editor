@@ -56,12 +56,18 @@
     if (!doc) return;
     fileError = ''; const expectedRevision = revision; revision++; localDraft(); pendingEdits++;
     const args = { id: doc.id, text: source.value, revision, expectedRevision };
-    editQueue = editQueue.catch(() => {}).then(() => wm.call('edit', args)).then(ack => {
+    if (sourceConflict) sourceWrites.pause();
+    editQueue = sourceWrites.enqueue(args).then(ack => {
       if (doc?.id === ack.id && ack.revision >= revision) {
         doc = ack;
         try { localStorage.removeItem(`svg-editor:${ack.id}`); } catch { /* Backend store is durable. */ }
       }
-    }).catch(error => { fileError = `Draft could not be kept: ${error.message || error}. Keep this window open and copy your source before closing.`; message(); throw error; }).finally(() => { pendingEdits = Math.max(0, pendingEdits - 1); });
+    }).catch(error => {
+      wm.post({ type: '__source_conflict', documentId: args.id, text: doc?.id === args.id ? source.value : args.text });
+      if (!sourceConflict) wm.call('state', {}).then(remote => { sourceConflict = remote; }).catch(() => {});
+      fileError = 'Source writes are paused. Your local source is kept in Drafts; close SVG source to use the shared version.';
+      message(); throw error;
+    }).finally(() => { pendingEdits = Math.max(0, pendingEdits - 1); });
     // Keep rejected queue handled until the next command awaits it.
     editQueue.catch(() => {});
     clearTimeout(timer); timer = setTimeout(preview, 180); controls(); position(); message();
@@ -83,9 +89,9 @@
         const saved = JSON.parse(localStorage.getItem(`svg-editor:${next.id}`) || 'null');
         if (saved && saved.text !== next.text) {
           source.value = saved.text;
-          if (saved.baseText === next.text || saved.revision > next.revision) { revision = next.revision; edit(); }
+          if (SvgSourceSync.canReplay(saved, next)) { revision = next.revision; edit(); }
           else {
-            sourceConflict = next; fileError = 'Recovered local source differs from the shared document. Copy it, then close SVG source to use the shared version.';
+            sourceConflict = next; sourceWrites.pause(); fileError = 'Recovered local source differs from the shared document. Copy it, then close SVG source to use the shared version.';
             $('workspace').classList.remove('preview-only'); $('source-toggle').setAttribute('aria-pressed', 'true');
           }
         }
@@ -136,11 +142,12 @@
     if (pathMode === 'save' && validation.error && !confirm('Save this source with SVG validation errors?')) return;
     $('path-dialog').close(); if (await call(pathMode === 'open' ? 'open' : 'save', { path })) source.focus();
   };
-  $('source-toggle').onclick = () => {
+  $('source-toggle').onclick = async () => {
     $('file-menu').open = false;
+    if (sourceWrites.blocked && !sourceConflict) { try { sourceConflict = await wm.call('state', {}); } catch { notice('The shared document is unavailable. Keep your source copied before closing.', 'red'); return; } }
     if (sourceConflict) {
       if (!confirm('Use the current shared document? Copy your local source before continuing; this replaces the local source field.')) return;
-      pendingEdits = 0; revision = -1; const next = sourceConflict; sourceConflict = null; fileError = ''; editQueue = Promise.resolve(); receive(next);
+      pendingEdits = 0; revision = -1; sourceWrites.reset(); try { localStorage.removeItem(`svg-editor:${doc.id}`); } catch {} const next = sourceConflict; sourceConflict = null; fileError = ''; editQueue = Promise.resolve(); receive(next);
     }
     const hide = $('workspace').classList.toggle('preview-only'); $('source-toggle').setAttribute('aria-pressed', String(!hide)); resizeImage(); };
   $('fit').onclick = () => { fitMode = true; resizeImage(); viewport.scrollTo(0, 0); };
@@ -197,10 +204,11 @@
     $('text-dialog').showModal(); $('label-text').focus(); $('label-text').select();
   }
   async function mutate(command, args = {}) {
-    if (!doc || sourceConflict) { notice('Resolve the shared source change before drawing.', 'amber'); return false; }
+    if (!doc || sourceConflict || sourceWrites.blocked) { notice('Resolve the shared source change before drawing.', 'amber'); return false; }
     const stamp = { documentId: doc.id, expectedRevision: doc.revision, ...args };
     return call(command, stamp);
   }
+  const sourceWrites = SvgSourceSync.create(args => wm.call('edit', args));
   const canvas = SvgCanvas.setup({ overlay: $('overlay'), onCommand: mutate, onSelection: selected, onText: editText, onError: error => { fileError = error; message(); } });
   document.querySelectorAll('[data-tool]').forEach(button => button.onclick = () => { canvas.setTool(button.dataset.tool); $('overlay').focus(); });
   $('text-cancel').onclick = () => $('text-dialog').close();
