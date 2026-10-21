@@ -67,7 +67,8 @@ function documentFor(id: string): SvgDocument { return svgStore.documents[svgSto
 function drafts() {
   return Object.values(svgStore.documents).filter(dirty).map(d => ({ id: d.id, name: title(d), path: d.path }));
 }
-function state(id: string) { const doc = documentFor(id); const { undo, redo, ...publicDoc } = doc; return { ...publicDoc, canUndo: !!undo?.length, canRedo: !!redo?.length, scene: scene(doc.text), name: title(doc), dirty: dirty(doc), drafts: drafts() }; }
+function documentState(doc: SvgDocument) { const { undo, redo, ...publicDoc } = doc; return { ...publicDoc, canUndo: !!undo?.length, canRedo: !!redo?.length, scene: scene(doc.text), name: title(doc), dirty: dirty(doc), drafts: drafts() }; }
+function state(id: string) { return documentState(documentFor(id)); }
 function publish(id: string): void {
   const doc = documentFor(id);
   persist();
@@ -88,6 +89,25 @@ async function run(argv: string[], stdin?: string): Promise<string> {
 }
 async function read(path: string): Promise<string> {
   return checkedText(await run(['head', '-c', String(MAX_BYTES + 1), path]));
+}
+// Native tabs own their strip, names, dirty guard and restore state, as in Markdown.
+// Read before opening, so an invalid file never replaces an existing draft.
+async function openTab(args: { windowId?: string; path?: string }, ctx: CommandCtx) {
+  const current = target(args, ctx);
+  const tabs = await app.tabs.list();
+  const hostId = tabs.find(tab => tab.id === current)?.hostId ?? ctx.hostId ?? current;
+  const path = args.path === undefined ? '' : filePath(args.path);
+  const text = path ? await read(path) : STARTER;
+  const doc = createDocument();
+  Object.assign(doc, { path, text, savedText: text });
+  persist();
+  try {
+    const opened = await app.tabs.open({ hostId, params: { draftId: doc.id } });
+    return { ...documentState(doc), windowId: opened.windowId, hostId: opened.hostId };
+  } catch (error) {
+    if (!Object.values(svgStore.windows).includes(doc.id)) { delete svgStore.documents[doc.id]; persist(); }
+    throw error;
+  }
 }
 function update(id: string, args: { id: string; text: string; revision: number; expectedRevision: number }): unknown {
   const doc = documentFor(id);
@@ -341,7 +361,10 @@ app.define({
 
     state(args: { windowId?: string } = {}, ctx) { return state(target(args, ctx)); },
     edit(args: { windowId?: string; id: string; text: string; revision: number; expectedRevision: number }, ctx) { return update(target(args, ctx), args); },
-    async open(args: { windowId?: string; path: string }, ctx) {
+    tabs() { return app.tabs.list(); },
+    newTab(args: { windowId?: string; path?: string } = {}, ctx) { return openTab(args, ctx); },
+    async open(args: { windowId?: string; path: string; newTab?: boolean }, ctx) {
+      if (args.newTab) return openTab(args, ctx);
       const id = target(args, ctx);
       canReplace(id);
       const before = documentFor(id);

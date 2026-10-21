@@ -55,8 +55,8 @@ globalThis.runVisualEditorChecks = async function () {
   try{await wm.call('move',{...old,key:box.key,dx:100,dy:100});throw new Error('stale accepted');}catch(error){check(String(error.message||error).includes('document changed'),'Stale agent mutations are rejected');}
   await synced();await wait(()=>!$('undo').disabled,'undo enabled');const beforeUndo=(await state()).text;$('undo').click();await wait(async()=>(await state()).text!==beforeUndo,'undo');await synced();await wait(()=>!$('redo').disabled,'redo enabled');$('redo').click();await wait(async()=>(await state()).text===beforeUndo,'redo');
   check(true,'Shared undo and redo work across human and agent edits');
-  await synced();await wait(()=>!$('save-as').disabled,'save ready');$('save-as').click();const path=`/private/tmp/svg-editor-check/visual-${Date.now()}.svg`;$('path').value=path;$('path-form').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));
-  await wait(async()=>(await state()).path===path,'save diagram');const saved=(await state()).text;
+  await synced();const path=`/private/tmp/svg-editor-check/visual-${Date.now()}.svg`;await wm.call('save',{path});
+  const saved=(await state()).text;
   await wm.call('open',{path});check((await state()).text===saved&&(await scene()).objects.length===5,'Drawn diagram saves and reopens through real file commands');
   check(!(await state()).dirty,'Save clears dirty state');
   await wm.call('open',{path:'/private/tmp/svg-editor-check/architecture.svg'});

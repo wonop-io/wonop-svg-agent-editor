@@ -14,10 +14,11 @@
   "strictArgs": true,
   "commands": {
     "open": {
-      "help": "Open a local SVG file; refuses to replace unsaved edits",
+      "help": "Open a local SVG; newTab opens in the same native tab strip without replacing a draft. Returns windowId/hostId for a new tab.",
       "args": {
         "path": "string",
-        "windowId": "string?"
+        "windowId": "string?",
+        "newTab": "boolean?"
       }
     },
     "state": {
@@ -144,6 +145,17 @@
         "documentId": "string",
         "expectedRevision": "number",
         "windowId": "string?"
+      }
+    },
+    "tabs": {
+      "help": "List native SVG tabs with stable ids, host windows, titles and dirty state.",
+      "args": {}
+    },
+    "newTab": {
+      "help": "Open a blank SVG or local path in a new native tab of the target window. Existing drafts remain untouched. Returns document state with windowId and hostId.",
+      "args": {
+        "windowId": "string?",
+        "path": "string?"
       }
     }
   },

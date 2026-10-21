@@ -8,12 +8,22 @@ async function rejects(action: () => unknown, code: string) {
 }
 const SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500"><text>Service</text></svg>\n';
 async function harness(saved?: any) {
-  const h = { spec: null as any, files: new Map<string, string>(), directories: new Set<string>(), posts: [] as any[], labels: new Map<string, any>(), calls: [] as any[], stored: saved, seq: 0, failWrite: false, beforeMove: null as null | (() => void), gate: null as null | (() => Promise<void>) };
+  const h = { spec: null as any, files: new Map<string, string>(), directories: new Set<string>(), posts: [] as any[], labels: new Map<string, any>(), calls: [] as any[], tabRows: [] as any[], tabOpens: [] as any[], tabError: false, stored: saved, seq: 0, failWrite: false, beforeMove: null as null | (() => void), gate: null as null | (() => Promise<void>) };
   (globalThis as any).workspace = { sources: [{ primary: true, path: '/workspace' }] };
   (globalThis as any).app = {
     define(spec: any) { h.spec = spec; },
     ui: { post(payload: any, windowId: string) { h.posts.push({ payload, windowId }); } },
-    tabs: { set(id: string, fields: any) { h.labels.set(id, fields); return Promise.resolve({ ok: true }); } },
+    tabs: {
+      set(id: string, fields: any) { h.labels.set(id, fields); return Promise.resolve({ ok: true }); },
+      list() { return Promise.resolve(h.tabRows); },
+      async open(opts: any) {
+        if (h.tabError) throw Object.assign(new Error('Tab limit'), { code: 'limit' });
+        const windowId = `tab-${h.tabOpens.length + 1}`;
+        h.tabOpens.push(opts); h.tabRows.push({ id: windowId, hostId: opts.hostId });
+        await h.spec.onOpen({ windowId, hostId: opts.hostId, params: opts.params, reason: 'script' });
+        return { windowId, hostId: opts.hostId };
+      },
+    },
     store: { get() { return h.stored; }, set(value: any) { h.stored = structuredClone(value); } },
     async exec(argv: string[], opts: any = {}) {
       h.calls.push({ argv, ...opts });
@@ -213,4 +223,28 @@ Deno.test('paused source input can keep the latest conflicting text without muta
   h.spec.onMessage({ windowId: 'w1', payload: { type: '__source_conflict', documentId: before.id, text: 'last queued input from replaced document' } });
   eq(h.command('state').id, replacement.id); eq(h.command('state').text, replacement.text);
   eq(h.stored.documents[`conflict-${before.id}-w1`].text, 'last queued input from replaced document');
+});
+
+Deno.test('native tabs open files and blanks without replacing any existing unsaved document', async () => {
+  const h = await harness(); h.open(); h.open('second');
+  h.tabRows.push({ id: 'w1', hostId: 'host' }, { id: 'second', hostId: 'host' });
+  h.edit(SVG.replace('Service', 'Architecture draft'));
+  const second = h.edit(SVG.replace('Service', 'Untitled draft'), 'second');
+  const first = h.command('state');
+  const before = structuredClone(h.stored);
+  h.files.set('/workspace/new.svg', SVG);
+  const opened = await h.command('open', { windowId: 'second', path: 'new.svg', newTab: true });
+  eq(h.tabOpens[0].hostId, 'host'); eq(opened.hostId, 'host');
+  eq(h.command('state', {}, opened.windowId).text, SVG);
+  eq(h.command('state'), first); eq(h.command('state', {}, 'second'), second);
+  for (const id of [first.id, second.id]) eq(h.stored.documents[id], before.documents[id]);
+  const blank = await h.command('newTab'); ok(blank.text.includes('viewBox')); eq(blank.path, '');
+  eq(h.command('state', {}, blank.windowId).id, blank.id);
+  eq((await h.command('tabs')).length, 4);
+  await rejects(() => h.command('open', { path: 'missing.svg', newTab: true }), 'file_error');
+  eq(h.tabOpens.length, 2);
+  h.tabError = true; const count = Object.keys(h.stored.documents).length;
+  await rejects(() => h.command('newTab'), 'limit');
+  eq(Object.keys(h.stored.documents).length, count);
+  eq(h.command('state'), first); eq(h.command('state', {}, 'second'), second);
 });
