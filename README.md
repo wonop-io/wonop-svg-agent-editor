@@ -1,4 +1,4 @@
-# SVG Editor
+# Wonop SVG Agent Editor
 
 A small canvas-first Wonop SVG editor for architecture diagrams. Select and manipulate objects directly; draw boxes, ellipses, lines and text with six essential tools. SVG source is available through the code icon as a secondary tool. Humans and agents operate on the same SVG document and undo history.
 
