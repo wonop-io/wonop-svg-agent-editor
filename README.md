@@ -2,6 +2,18 @@
 
 A small canvas-first Wonop SVG editor for architecture diagrams. Select and manipulate objects directly; draw boxes, ellipses, lines and text with six essential tools. SVG source is available through the code icon as a secondary tool. Humans and agents operate on the same SVG document and undo history.
 
+## Screenshots
+
+Fresh captures of the running SVG Editor with a non-private [sample diagram](docs/sample-diagram.svg), not mockups. These show only the app’s content area; other windows and private drafts are excluded.
+
+### Canvas-first editing
+
+![SVG Editor canvas with a sample publishing pipeline made of editable shapes, connectors and labels](docs/screenshots/canvas.png)
+
+### SVG source alongside the canvas
+
+![SVG Editor with its optional SVG source pane open beside the same sample diagram](docs/screenshots/source-and-canvas.png)
+
 ## Use
 
 Use the six icon tools in the sidebar: select, box, ellipse, line, text and hand. Every icon has an accessible name and a tooltip with its shortcut. Choose a shape and drag on the page, or choose text and click to place a label. Select an object to drag it, resize a box/ellipse/circle/line with its corner handles, edit a text label, change its style or delete it. Double-click text to edit it. Use Hand to pan, Fit or the percentage control for scale, and control-scroll/pinch to zoom. New diagrams start with a blank page.
